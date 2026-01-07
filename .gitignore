@@ -109,6 +109,7 @@ proguard/
 *.swp
 
 # Keystore files
+keystore
 
 # Google Services (e.g. APIs or Firebase)
 # google-services.json
