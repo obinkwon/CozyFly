@@ -32,7 +32,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     private var timeCounter = 0
     private val fps = 60
     private val obstacleWidth = 100f
-    private val obstacleHeight = 200f
+    private val obstacleHeight = 100f
     private val obstacleMargin = 50f
     private var isGameOver = false
     private val playerRadius = playerSize / 2
@@ -219,6 +219,15 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
             Obstacle(
                 x = width.toFloat(),
                 y = randomY,
+                width = obstacleWidth,
+                height = obstacleHeight,
+                bitmap = obstacleBitmap
+            )
+        )
+        obstacles.add(
+            Obstacle(
+                x = width.toFloat(),
+                y = randomY + obstacleHeight,
                 width = obstacleWidth,
                 height = obstacleHeight,
                 bitmap = obstacleBitmap
