@@ -1,61 +1,67 @@
 package com.game.cozyfly
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.view.MotionEvent
 import android.view.SurfaceView
 import kotlin.random.Random
+import androidx.core.content.edit
 
 class GameView(context: Context) : SurfaceView(context), Runnable {
 
-    private val obstacleBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.obstacle)
-
+    // 파리 관련 변수
     private val playerBitmap1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
     private val playerBitmap2 = BitmapFactory.decodeResource(resources, R.drawable.fly2)
     // 현재 사용할 이미지
     private var currentPlayerBitmap = playerBitmap1
+    private var x = 300f
+    private var y = 500f
+    private var velocityY = 0f
+    private val gravity = 1.2f
+    private val playerSize = 100f // 파리 크기 (이미지 크기 조절용)
+    private val playerRadius = playerSize / 2
+    
+    // 게임 관련 변수
     private var flapTimer = 0
     private val flapDuration = 10   // 프레임 수 (약 0.15초)
-    // 플레이어 크기 (이미지 크기 조절용)
-    private val playerSize = 100f
+    private var difficultyLevel = 1
+    private val baseScrollSpeed = 8f
+    private val baseSpawnInterval = 100
+    private var scrollSpeed = baseScrollSpeed
+    private var gameThread = Thread(this)
+    private var running = false
+    private val paint = Paint()
+    private var isGameOver = false
+    private var spawnTimer = 0
+    private var spawnInterval = baseSpawnInterval
 
+    // 배경 관련 변수
     private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.background)
     private var bgX1 = 0f
     private var bgX2 = background.width.toFloat()
     private val bgScrollSpeed = 4f
 
-    private var difficultyLevel = 1
-    private val baseScrollSpeed = 8f
-    private val baseSpawnInterval = 100
-    private var score = 0
-    private var bestScore = 0
-    private var timeCounter = 0
-    private val fps = 60
+    // 장애물 관련 변수
+    private val obstacles = mutableListOf<Obstacle>()
+    private val obstacleBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.obstacle)
     private val obstacleWidth = 100f
     private val obstacleHeight = 100f
     private val obstacleMargin = 50f
-    private var isGameOver = false
-    private val playerRadius = playerSize / 2
-    private val obstacles = mutableListOf<Obstacle>()
-    private var spawnTimer = 0
-    private var spawnInterval = baseSpawnInterval
-    private var scrollSpeed = baseScrollSpeed
-    private val gameThread = Thread(this)
-    private var running = false
-    private val paint = Paint()
 
-    // 플레이어 위치
-    private var x = 300f
-    private var y = 500f
-    private var velocityY = 0f
-    private val gravity = 1.2f
-
+    // 점수 관련 변수
     private val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+    private var score = 0
+    private var bestScore = 0
+    private var timeCounter = 0
+    private val fps = 60 // 프레임 설정
 
+    // 최고 점수 설정
     init {
         bestScore = prefs.getInt("BEST_SCORE", 0)
     }
 
+    // 실행
     override fun run() {
         while (running) {
             if (!holder.surface.isValid) continue
@@ -67,10 +73,11 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     private fun update() {
         if (isGameOver) return
 
+        // 배경 화면 속도
         bgX1 -= bgScrollSpeed
         bgX2 -= bgScrollSpeed
 
-        // 화면 밖으로 나가면 다시 오른쪽으로
+        // 배경 화면 밖으로 나가면 다시 오른쪽 으로
         if (bgX1 + background.width < 0) {
             bgX1 = bgX2 + background.width
         }
@@ -119,13 +126,13 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
 
                 if (score > bestScore) {
                     bestScore = score
-                    prefs.edit().putInt("BEST_SCORE", bestScore).apply()
+                    prefs.edit { putInt("BEST_SCORE", bestScore) }
                 }
                 break
             }
         }
 
-        // 시간 기반 점수
+        // 시간 기반 점수 (1초 마다)
         timeCounter++
         if (timeCounter >= fps) {
             score++
@@ -138,10 +145,11 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
                 currentPlayerBitmap = playerBitmap1
             }
         }
-
+        // 난이도 조절
         updateDifficulty()
     }
 
+    // 요소 그리기
     private fun drawGame() {
 
         val canvas = holder.lockCanvas()
@@ -184,6 +192,8 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         holder.unlockCanvasAndPost(canvas)
     }
 
+    // 터치 이벤트
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
             if(isGameOver) resetGame();
@@ -196,16 +206,20 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         return true
     }
 
+    // 시작
     fun start() {
         running = true
+        gameThread = Thread(this)
         gameThread.start()
     }
 
+    // 정지
     fun stop() {
         running = false
         gameThread.join()
     }
 
+    // 장애물 생성
     private fun spawnObstacle() {
         val minY = obstacleMargin
         val maxY = height - obstacleHeight - obstacleMargin
@@ -224,6 +238,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
                 bitmap = obstacleBitmap
             )
         )
+        
         obstacles.add(
             Obstacle(
                 x = width.toFloat(),
@@ -233,9 +248,9 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
                 bitmap = obstacleBitmap
             )
         )
-
     }
 
+    // 게임 초기화
     private fun resetGame() {
         x = 300f
         y = height / 2f
@@ -256,6 +271,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         bgX2 = background.width.toFloat()
     }
 
+    // 난이도 조절
     private fun updateDifficulty() {
         difficultyLevel = score / 5 + 1
 
