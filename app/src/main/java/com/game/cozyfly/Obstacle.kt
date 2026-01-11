@@ -3,6 +3,7 @@ package com.game.cozyfly
 import android.graphics.Canvas
 import android.graphics.*
 
+// 장애물 Class
 class Obstacle(
     var x: Float,
     var y: Float,

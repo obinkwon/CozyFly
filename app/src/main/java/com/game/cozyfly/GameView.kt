@@ -4,11 +4,34 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.view.MotionEvent
+import android.view.SurfaceHolder
 import android.view.SurfaceView
 import kotlin.random.Random
 import androidx.core.content.edit
+import com.game.cozyfly.util.CanvasUtil
+import com.game.cozyfly.data.TextStyle
+import com.game.cozyfly.enums.GameState
 
-class GameView(context: Context) : SurfaceView(context), Runnable {
+class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
+
+    // 게임 관련 변수
+    private var flapTimer = 0
+    private val flapDuration = 10   // 프레임 수 (약 0.15초)
+    private var difficultyLevel = 1
+    private val baseScrollSpeed = 8f
+    private val baseSpawnInterval = 100
+    private var scrollSpeed = baseScrollSpeed
+    private var gameThread = Thread(this)
+    private var running = false
+    private var isGameOver = false
+    private var spawnTimer = 0
+    private var spawnInterval = baseSpawnInterval
+    private var gameState = GameState.MENU
+    private var startX = 0f
+    private var startY = 0f
+    private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
+    private var startW = 500f   // 버튼 가로
+    private var startH = 300f   // 버튼 세로
 
     // 파리 관련 변수
     private val playerBitmap1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
@@ -22,20 +45,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     private val playerSize = 100f // 파리 크기 (이미지 크기 조절용)
     private val playerRadius = playerSize / 2
     
-    // 게임 관련 변수
-    private var flapTimer = 0
-    private val flapDuration = 10   // 프레임 수 (약 0.15초)
-    private var difficultyLevel = 1
-    private val baseScrollSpeed = 8f
-    private val baseSpawnInterval = 100
-    private var scrollSpeed = baseScrollSpeed
-    private var gameThread = Thread(this)
-    private var running = false
-    private val paint = Paint()
-    private var isGameOver = false
-    private var spawnTimer = 0
-    private var spawnInterval = baseSpawnInterval
-
     // 배경 관련 변수
     private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.background)
     private var bgX1 = 0f
@@ -56,17 +65,55 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     private var timeCounter = 0
     private val fps = 60 // 프레임 설정
 
-    // 최고 점수 설정
+    // Text style
+    private val gameOverStyle = TextStyle(100f, Color.RED)
+    private val scoreStyle = TextStyle(60f, Color.WHITE)
+    private val bestScoreStyle = TextStyle(40f, Color.WHITE)
+
     init {
+        // 최고 점수 설정
         bestScore = prefs.getInt("BEST_SCORE", 0)
+        holder.addCallback(this)
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        running = true
+        gameThread = Thread(this)
+        gameThread.start()
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        // 필요 없으면 비워둬도 OK
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        running = false
+        try {
+            gameThread.join()
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+        }
     }
 
     // 실행
     override fun run() {
         while (running) {
             if (!holder.surface.isValid) continue
-            update()
-            drawGame()
+
+            var canvas: Canvas? = null
+            try {
+                canvas = holder.lockCanvas()
+                synchronized(holder) {
+                    update()
+                    drawGame(canvas) // canvas를 전달
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                if (canvas != null) {
+                    holder.unlockCanvasAndPost(canvas)
+                }
+            }
         }
     }
 
@@ -85,7 +132,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         if (bgX2 + background.width < 0) {
             bgX2 = bgX1 + background.width
         }
-
 
         // 플레이어 중력
         velocityY += gravity
@@ -139,6 +185,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
             timeCounter = 0
         }
 
+        // 플레이어 flap 애니메이션 / 상태 복귀
         if (flapTimer > 0) {
             flapTimer--
             if (flapTimer == 0) {
@@ -150,11 +197,14 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     }
 
     // 요소 그리기
-    private fun drawGame() {
-
-        val canvas = holder.lockCanvas()
+    private fun drawGame(canvas: Canvas) {
         canvas.drawBitmap(background, bgX1, 0f, null)
         canvas.drawBitmap(background, bgX2, 0f, null)
+
+        if (gameState == GameState.MENU) {
+            drawMenu(canvas)
+            return
+        }
 
         // 플레이어
         val left = x - playerSize / 2
@@ -169,38 +219,50 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
 
         canvas.drawBitmap(currentPlayerBitmap, null, destRect, null)
 
-
-        // 장애물
+        // 장애물 그리기
         for (obs in obstacles) {
             obs.draw(canvas)
         }
 
         // 게임오버 텍스트
         if (isGameOver) {
-            paint.color = Color.RED
-            paint.textSize = 100f
-            canvas.drawText("GAME OVER", width / 4f, height / 2f, paint)
+            CanvasUtil.drawText(canvas, "GAME OVER", width / 4f, height / 2f, gameOverStyle)
         }
 
-        paint.color = Color.WHITE
-        paint.textSize = 60f
-        canvas.drawText("Score: $score", 50f, 80f, paint)
+        // 점수 표시
+        CanvasUtil.drawText(canvas, "Score: $score", 50f, 80f, scoreStyle)
+        // 최고 점수 표시
+        CanvasUtil.drawText(canvas, "Best: $bestScore", 50f, 130f, bestScoreStyle)
+    }
 
-        paint.textSize = 40f
-        canvas.drawText("Best: $bestScore", 50f, 130f, paint)
+    private fun drawMenu(canvas: Canvas) {
+        // 버튼 위치 계산
+        startX = (width - startW) / 2f
+        startY = (height - startH) / 2f
 
-        holder.unlockCanvasAndPost(canvas)
+        val rect = RectF(startX, startY, startX + startW, startY + startH)
+        canvas.drawBitmap(startBtn, null, rect, null)
     }
 
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if(isGameOver) resetGame();
-            velocityY = -20f   // 점프
+            if (gameState == GameState.MENU) {
+                // 메뉴 상태일 때 버튼 체크
+                if (event.x >= startX && event.x <= startX + startW &&
+                    event.y >= startY && event.y <= startY + startH) {
+                    gameState = GameState.PLAY
+                    resetGame()   // 기존 플레이어 위치/점수/장애물 초기화
+                }
+            } else if (gameState == GameState.PLAY) {
+                if(isGameOver) resetGame();
+                velocityY = -20f   // 점프
 
-            currentPlayerBitmap = playerBitmap2
-            flapTimer = flapDuration
+                currentPlayerBitmap = playerBitmap2
+                flapTimer = flapDuration
+            }
+
         }
 
         return true
@@ -209,14 +271,11 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
     // 시작
     fun start() {
         running = true
-        gameThread = Thread(this)
-        gameThread.start()
     }
 
     // 정지
     fun stop() {
         running = false
-        gameThread.join()
     }
 
     // 장애물 생성
@@ -279,5 +338,4 @@ class GameView(context: Context) : SurfaceView(context), Runnable {
         spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10)
             .coerceAtLeast(40)
     }
-
 }
