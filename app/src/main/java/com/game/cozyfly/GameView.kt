@@ -70,6 +70,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private val scoreStyle = TextStyle(60f, Color.WHITE)
     private val bestScoreStyle = TextStyle(40f, Color.WHITE)
 
+    // 초기 설정
     init {
         // 최고 점수 설정
         bestScore = prefs.getInt("BEST_SCORE", 0)
