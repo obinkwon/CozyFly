@@ -10,6 +10,7 @@ import kotlin.random.Random
 import androidx.core.content.edit
 import com.game.cozyfly.util.CanvasUtil
 import com.game.cozyfly.data.TextStyle
+import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
 
 class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
@@ -30,8 +31,16 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private var startX = 0f
     private var startY = 0f
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
+    private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private var startW = 500f   // 버튼 가로
     private var startH = 300f   // 버튼 세로
+    private val tapButtonRect = RectF()
+    private val holdButtonRect = RectF()
+    private val backButtonRect = RectF()
+    private val startButtonRect = RectF()
+    private val settingsButtonRect = RectF()
+    private var clickMode = ClickMode.TAP
+    private var holding = false;
 
     // 파리 관련 변수
     private val playerBitmap1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
@@ -69,11 +78,13 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private val gameOverStyle = TextStyle(100f, Color.RED)
     private val scoreStyle = TextStyle(60f, Color.WHITE)
     private val bestScoreStyle = TextStyle(40f, Color.WHITE)
+    private val infoStyle = TextStyle(40f, Color.DKGRAY)
 
     // 초기 설정
     init {
         // 최고 점수 설정
         bestScore = prefs.getInt("BEST_SCORE", 0)
+        clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.TAP.type)) ?: ClickMode.TAP
         holder.addCallback(this)
     }
 
@@ -134,8 +145,15 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
             bgX2 = bgX1 + background.width
         }
 
-        // 플레이어 중력
-        velocityY += gravity
+        if (clickMode == ClickMode.HOLD && holding) {
+            velocityY = -20f  // 원하는 상승 속도
+            currentPlayerBitmap = playerBitmap2
+            flapTimer = flapDuration
+        } else {
+            // 플레이어 중력
+            velocityY += gravity
+        }
+        // 플레이어 이동
         y += velocityY
 
         // 화면 제한
@@ -193,6 +211,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
                 currentPlayerBitmap = playerBitmap1
             }
         }
+
         // 난이도 조절
         updateDifficulty()
     }
@@ -204,6 +223,9 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
 
         if (gameState == GameState.MENU) {
             drawMenu(canvas)
+            return
+        } else if (gameState == GameState.SETTINGS) {
+            drawSettings(canvas)
             return
         }
 
@@ -241,32 +263,91 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         startX = (width - startW) / 2f
         startY = (height - startH) / 2f
 
-        val rect = RectF(startX, startY, startX + startW, startY + startH)
-        canvas.drawBitmap(startBtn, null, rect, null)
+        // start 버튼
+        startButtonRect.set(startX, startY, startX + startW, startY + startH)
+        canvas.drawBitmap(startBtn, null, startButtonRect, null)
+
+        // setting 버튼
+        settingsButtonRect.set(startX-50f, startY + 150f, startX + startW+50f, startY + startH + 250f)
+        canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
+    }
+
+    private fun drawSettings(canvas: Canvas) {
+        // 버튼 위치 계산
+        startX = (width - startW) / 2f
+        startY = (height - startH) / 2f
+
+        settingsButtonRect.set(startX-50f, 100f, startX + startW+50f, 450f)
+        canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
+
+        tapButtonRect.set(width / 2f - 200, startY, width / 2f + 200, startY + 100f)
+        CanvasUtil.drawButton(canvas, ClickMode.TAP, tapButtonRect)
+
+        holdButtonRect.set(width / 2f - 200, startY + 150f, width / 2f + 200, startY + 250f)
+        CanvasUtil.drawButton(canvas, ClickMode.HOLD, holdButtonRect)
+
+        backButtonRect.set(width / 2f - 200, startY + 700f, width / 2f + 200, startY + 800f)
+        CanvasUtil.drawButton(canvas, ClickMode.BACK, backButtonRect)
+
+        // 현재 선택 표시
+        val selectedText = "$clickMode Mode"
+        CanvasUtil.drawText(canvas, selectedText, width / 2f - 200, 750f, infoStyle)
     }
 
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            if (gameState == GameState.MENU) {
-                // 메뉴 상태일 때 버튼 체크
-                if (event.x >= startX && event.x <= startX + startW &&
-                    event.y >= startY && event.y <= startY + startH) {
-                    gameState = GameState.PLAY
-                    resetGame()   // 기존 플레이어 위치/점수/장애물 초기화
-                }
-            } else if (gameState == GameState.PLAY) {
-                if(isGameOver) resetGame();
-                velocityY = -20f   // 점프
-
-                currentPlayerBitmap = playerBitmap2
-                flapTimer = flapDuration
-            }
-
+        when (gameState) {
+            GameState.MENU -> handleMenuTouch(event)
+            GameState.SETTINGS -> handleSettingsTouch(event)
+            GameState.PLAY -> handleGameplayTouch(event)
+            GameState.GAMEOVER -> TODO()
         }
 
         return true
+    }
+    
+    // 메뉴 터치 이벤트
+    private fun handleMenuTouch(event: MotionEvent) {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            if (startButtonRect.contains(event.x, event.y)) {
+                gameState = GameState.PLAY
+                resetGame()   // 기존 플레이어 위치/점수/장애물 초기화
+            } else if (settingsButtonRect.contains(event.x, event.y)) {
+                gameState = GameState.SETTINGS
+            }
+        }
+    }
+
+    // 세팅 터치 이벤트
+    private fun handleSettingsTouch(event: MotionEvent) {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            if (tapButtonRect.contains(event.x, event.y)) {
+                clickMode = ClickMode.TAP
+            } else if (holdButtonRect.contains(event.x, event.y)) {
+                clickMode = ClickMode.HOLD
+            } else if (backButtonRect.contains(event.x, event.y)) {
+                prefs.edit { putString("CLICK_MODE", clickMode.type) }
+                gameState = GameState.MENU
+            }
+        }
+    }
+    
+    // 플레이 터치 이벤트
+    private fun handleGameplayTouch(event: MotionEvent) {
+        if(isGameOver) resetGame();
+        if (clickMode == ClickMode.TAP) {
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                velocityY = -20f   // 점프
+                currentPlayerBitmap = playerBitmap2
+                flapTimer = flapDuration
+            }
+        } else {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> holding = true
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> holding = false
+            }
+        }
     }
 
     // 시작
