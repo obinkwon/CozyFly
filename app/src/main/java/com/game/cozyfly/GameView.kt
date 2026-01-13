@@ -24,7 +24,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private var scrollSpeed = baseScrollSpeed
     private var gameThread = Thread(this)
     private var running = false
-    private var isGameOver = false
     private var spawnTimer = 0
     private var spawnInterval = baseSpawnInterval
     private var gameState = GameState.MENU
@@ -40,7 +39,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private val startButtonRect = RectF()
     private val settingsButtonRect = RectF()
     private var clickMode = ClickMode.TAP
-    private var holding = false;
+    private var holding = false
 
     // 파리 관련 변수
     private val playerBitmap1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
@@ -130,7 +129,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     }
 
     private fun update() {
-        if (isGameOver) return
+        if (gameState == GameState.GAMEOVER) return
 
         // 배경 화면 속도
         bgX1 -= bgScrollSpeed
@@ -187,7 +186,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         // 충돌 판정
         for (obs in obstacles) {
             if (obs.collidesWith(x, y, playerRadius)) {
-                isGameOver = true
+                gameState = GameState.GAMEOVER
 
                 if (score > bestScore) {
                     bestScore = score
@@ -248,7 +247,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         }
 
         // 게임오버 텍스트
-        if (isGameOver) {
+        if (gameState == GameState.GAMEOVER) {
             CanvasUtil.drawText(canvas, "GAME OVER", width / 4f, height / 2f, gameOverStyle)
         }
 
@@ -301,7 +300,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
             GameState.MENU -> handleMenuTouch(event)
             GameState.SETTINGS -> handleSettingsTouch(event)
             GameState.PLAY -> handleGameplayTouch(event)
-            GameState.GAMEOVER -> TODO()
+            GameState.GAMEOVER -> resetGame()
         }
 
         return true
@@ -335,7 +334,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     
     // 플레이 터치 이벤트
     private fun handleGameplayTouch(event: MotionEvent) {
-        if(isGameOver) resetGame();
         if (clickMode == ClickMode.TAP) {
             if (event.action == MotionEvent.ACTION_DOWN) {
                 velocityY = -20f   // 점프
@@ -402,7 +400,6 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
 
         score = 0
         timeCounter = 0
-        isGameOver = false
 
         difficultyLevel = 1
         scrollSpeed = baseScrollSpeed
@@ -410,6 +407,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
 
         bgX1 = 0f
         bgX2 = background.width.toFloat()
+        gameState = GameState.PLAY
     }
 
     // 난이도 조절
