@@ -15,6 +15,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         gameView = GameView(this)
         setContentView(gameView)
+        // 배경음
         bgmPlayer = MediaPlayer.create(this, R.raw.bgm)
         bgmPlayer.isLooping = true
         bgmPlayer.start()

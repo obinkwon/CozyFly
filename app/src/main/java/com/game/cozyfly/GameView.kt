@@ -26,11 +26,12 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private var running = false
     private var spawnTimer = 0
     private var spawnInterval = baseSpawnInterval
-    private var gameState = GameState.MENU
+    private var gameState = GameState.MENU // 초기값 메뉴 상태
     private var startX = 0f
     private var startY = 0f
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
     private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
+    private val gameOverText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.gameover)
     private var startW = 500f   // 버튼 가로
     private var startH = 300f   // 버튼 세로
     private val tapButtonRect = RectF()
@@ -38,7 +39,8 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private val backButtonRect = RectF()
     private val startButtonRect = RectF()
     private val settingsButtonRect = RectF()
-    private var clickMode = ClickMode.TAP
+    private val gameOverTextRect = RectF()
+    private var clickMode = ClickMode.TAP // 초기값 탭 상태
     private var holding = false
 
     // 파리 관련 변수
@@ -74,15 +76,15 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private val fps = 60 // 프레임 설정
 
     // Text style
-    private val gameOverStyle = TextStyle(100f, Color.RED)
-    private val scoreStyle = TextStyle(60f, Color.WHITE)
-    private val bestScoreStyle = TextStyle(40f, Color.WHITE)
+    private val scoreStyle = TextStyle(60f, Color.DKGRAY)
+    private val bestScoreStyle = TextStyle(40f, Color.DKGRAY)
     private val infoStyle = TextStyle(40f, Color.DKGRAY)
 
     // 초기 설정
     init {
         // 최고 점수 설정
         bestScore = prefs.getInt("BEST_SCORE", 0)
+        // 설정한 클릭 모드 설정
         clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.TAP.type)) ?: ClickMode.TAP
         holder.addCallback(this)
     }
@@ -248,13 +250,14 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
 
         // 게임오버 텍스트
         if (gameState == GameState.GAMEOVER) {
-            CanvasUtil.drawText(canvas, "GAME OVER", width / 4f, height / 2f, gameOverStyle)
+            gameOverTextRect.set((width - startW) / 2f, (height - startH) / 2f, (width - startW) / 2f + startW, (height - startH) / 2f + startH)
+            canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
         }
 
         // 점수 표시
-        CanvasUtil.drawText(canvas, "Score: $score", 50f, 80f, scoreStyle)
+        CanvasUtil.drawText(canvas, "Score: $score", 50f, 150f, scoreStyle)
         // 최고 점수 표시
-        CanvasUtil.drawText(canvas, "Best: $bestScore", 50f, 130f, bestScoreStyle)
+        CanvasUtil.drawText(canvas, "Best: $bestScore", 50f, 200f, bestScoreStyle)
     }
 
     private fun drawMenu(canvas: Canvas) {
@@ -267,7 +270,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         canvas.drawBitmap(startBtn, null, startButtonRect, null)
 
         // setting 버튼
-        settingsButtonRect.set(startX-50f, startY + 150f, startX + startW+50f, startY + startH + 250f)
+        settingsButtonRect.set(startX-50f, startY + 150f, startX + startW + 50f, startY + startH + 250f)
         canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
     }
 
