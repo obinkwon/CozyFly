@@ -14,7 +14,7 @@ android {
         applicationId = "com.game.cozyfly"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
+        versionCode = 6
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
