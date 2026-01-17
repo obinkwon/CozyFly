@@ -93,6 +93,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         holder.addCallback(this)
     }
 
+    // surfaceView 생성
     override fun surfaceCreated(holder: SurfaceHolder) {
         // 버튼 위치 계산
         centerX = (width - startW) / 2f
@@ -102,11 +103,13 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         gameThread = Thread(this)
         gameThread.start()
     }
-
+    
+    // surfaceView 변경
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         // 필요 없으면 비워둬도 OK
     }
 
+    // surfaceView 제거
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         running = false
         try {
@@ -136,6 +139,14 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
                 }
             }
         }
+    }
+
+    // 가로/세로 전환시 호출
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+
+        centerX = w / 2f - startW / 2f
+        centerY = h / 2f - startH / 2f
     }
 
     private fun update() {
