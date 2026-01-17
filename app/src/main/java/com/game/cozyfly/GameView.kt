@@ -13,8 +13,9 @@ import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
+import com.game.cozyfly.listener.BgmListener
 
-class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
+class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
 
     // 쓰레드 변수
     private var gameThread = Thread(this)
@@ -30,6 +31,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private var spawnInterval = baseSpawnInterval
     private var gameState = GameState.PLAY // 초기값 실행 상태
     private var viewState = ViewState.MENU // 초기값 메뉴 화면
+    private var bgmState = ClickMode.BGM_ON // 초기값 bgm 상태
     private var startW = 500f // 버튼 가로
     private var startH = 300f // 버튼 세로
     private var centerX = 0f // 중앙 X좌표 값
@@ -37,13 +39,13 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
     private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private val gameOverText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.gameover)
-    private val tapButtonRect = RectF()
-    private val holdButtonRect = RectF()
+    private val modeButtonRect = RectF()
     private val backButtonRect = RectF()
     private val startButtonRect = RectF()
     private val settingsButtonRect = RectF()
     private val gameOverTextRect = RectF()
-    private var clickMode = ClickMode.TAP // 초기값 탭 상태
+    private val bgmButtonRect = RectF()
+    private var clickMode = ClickMode.CLICK_TAP // 초기값 탭 상태
     private var holding = false
 
     // 파리 관련 변수
@@ -82,14 +84,15 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     // Text style
     private val scoreStyle = TextStyle(60f, Color.DKGRAY)
     private val bestScoreStyle = TextStyle(40f, Color.DKGRAY)
-    private val infoStyle = TextStyle(40f, Color.DKGRAY)
 
     // 초기 설정
     init {
         // 최고 점수 설정
         bestScore = prefs.getInt("BEST_SCORE", 0)
         // 설정한 클릭 모드 설정
-        clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.TAP.type)) ?: ClickMode.TAP
+        clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.CLICK_TAP.type)) ?: ClickMode.CLICK_TAP
+        // 설정한 bgm 모드 설정
+        bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
         holder.addCallback(this)
     }
 
@@ -165,7 +168,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
         }
 
         // 홀드 모드일때
-        if (clickMode == ClickMode.HOLD && holding) {
+        if (clickMode == ClickMode.CLICK_HOLD && holding) {
             velocityY = -20f  // 원하는 상승 속도
             currentPlayer = playerImg2
             flapTimer = flapDuration
@@ -287,21 +290,17 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     // 세팅 화면 그리기
     private fun drawSettings(canvas: Canvas) {
         // 세팅 글자
-        settingsButtonRect.set(centerX-50f, 100f, centerX + startW+50f, 450f)
+        settingsButtonRect.set(centerX-50f, 100f, centerX + startW + 50f, startH + 200f)
         canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
-        // 탭 모드 버튼 
-        tapButtonRect.set(width / 2f - 200, centerY, width / 2f + 200, centerY + 100f)
-        CanvasUtil.drawButton(canvas, ClickMode.TAP, tapButtonRect)
-        // 홀드 모드 버튼
-        holdButtonRect.set(width / 2f - 200, centerY + 150f, width / 2f + 200, centerY + 250f)
-        CanvasUtil.drawButton(canvas, ClickMode.HOLD, holdButtonRect)
+        // 모드 버튼
+        modeButtonRect.set(width / 2f - 200, centerY, width / 2f + 200, centerY + 100f)
+        CanvasUtil.drawButton(canvas, clickMode, modeButtonRect)
+        // 배경음 조절 버튼
+        bgmButtonRect.set(width / 2f - 200, centerY + 150f, width / 2f + 200, centerY + 250f)
+        CanvasUtil.drawButton(canvas, bgmState, bgmButtonRect)
         // 뒤로가기 버튼
-        backButtonRect.set(width / 2f - 200, centerY + 700f, width / 2f + 200, centerY + 800f)
+        backButtonRect.set(width / 2f - 200, centerY + 500f, width / 2f + 200, centerY + 600f)
         CanvasUtil.drawButton(canvas, ClickMode.BACK, backButtonRect)
-
-        // 현재 선택 표시
-        val selectedText = "$clickMode Mode"
-        CanvasUtil.drawText(canvas, selectedText, width / 2f - 200, 750f, infoStyle)
     }
 
     // 배경 화면 그리기
@@ -337,13 +336,15 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     // 세팅 터치 이벤트
     private fun handleSettingsTouch(event: MotionEvent) {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (tapButtonRect.contains(event.x, event.y)) {
-                clickMode = ClickMode.TAP
-            } else if (holdButtonRect.contains(event.x, event.y)) {
-                clickMode = ClickMode.HOLD
-            } else if (backButtonRect.contains(event.x, event.y)) {
+            if (modeButtonRect.contains(event.x, event.y)) {
+                clickMode = if(clickMode == ClickMode.CLICK_TAP) ClickMode.CLICK_HOLD else ClickMode.CLICK_TAP
                 prefs.edit { putString("CLICK_MODE", clickMode.type) }
+            } else if (backButtonRect.contains(event.x, event.y)) {
                 viewState = ViewState.MENU
+            } else if (bgmButtonRect.contains(event.x, event.y)) {
+                bgmState = if(bgmState == ClickMode.BGM_ON) ClickMode.BGM_OFF else ClickMode.BGM_ON
+                if(bgmState == ClickMode.BGM_ON) bgmListener.onBgmOn() else bgmListener.onBgmOff()
+                prefs.edit { putString("BGM_MODE", bgmState.type) }
             }
         }
     }
@@ -352,7 +353,7 @@ class GameView(context: Context) : SurfaceView(context), Runnable, SurfaceHolder
     private fun handleGameplayTouch(event: MotionEvent) {
         // 게임 실행중일때
         if(gameState == GameState.PLAY) {
-            if (clickMode == ClickMode.TAP) {
+            if (clickMode == ClickMode.CLICK_TAP) {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     velocityY = -20f   // 점프
                     currentPlayer = playerImg2
