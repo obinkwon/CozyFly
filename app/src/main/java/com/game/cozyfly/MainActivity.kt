@@ -1,9 +1,9 @@
 package com.game.cozyfly
 
-import android.content.Context
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import com.game.cozyfly.enums.ClickMode
@@ -17,13 +17,24 @@ class MainActivity : ComponentActivity(), BgmListener {
         super.onCreate(savedInstanceState)
         // 상태바 영역까지 화면을 확장
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        setContentView(GameView(this, this))
-        // 배경음
-        prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
-        val bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
+        // 게임 뷰 추가
+        val gameView = GameView(this, this)
+        // 팝업 뷰 추가
+        val popupView = PopupView(this, gameView)
+        gameView.popupView = popupView   // popupView 넘겨주기
+        // 컨테이너 생성
+        val container = FrameLayout(this)
+        container.addView(gameView)
+        container.addView(popupView) // 게임 위에 올라갈 UI
+
+        setContentView(container)
+        // 배경음 초기화
         bgmPlayer = MediaPlayer.create(this, R.raw.bgm)
         bgmPlayer.isLooping = true
         bgmPlayer.start()
+        // 배경음 상태 따라서 ON/OFF 설정
+        prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
+        val bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
         if (bgmState == ClickMode.BGM_ON) onBgmOn() else onBgmOff()
     }
 

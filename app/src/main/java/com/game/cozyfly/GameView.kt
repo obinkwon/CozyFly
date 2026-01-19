@@ -15,15 +15,20 @@ import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.BgmListener
 
+@SuppressLint("ViewConstructor")
 class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
+
+    // 팝업 view 변수
+    lateinit var popupView: PopupView
 
     // 쓰레드 변수
     private var gameThread = Thread(this)
     private var running = false
+
     // 게임 관련 변수
     private var flapTimer = 0
     private val flapDuration = 10   // 프레임 수 (약 0.15초)
-    private var difficultyLevel = 1
+    private var difficultyLevel = 1 // 난이도
     private val baseScrollSpeed = 8f
     private val baseSpawnInterval = 100
     private var scrollSpeed = baseScrollSpeed
@@ -39,12 +44,13 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
     private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private val gameOverText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.gameover)
+    private val settingIconBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting_icon)
     private val modeButtonRect = RectF()
     private val backButtonRect = RectF()
     private val startButtonRect = RectF()
     private val settingsButtonRect = RectF()
-    private val gameOverTextRect = RectF()
     private val bgmButtonRect = RectF()
+    private val settingIconBtnRect = RectF()
     private var clickMode = ClickMode.CLICK_TAP // 초기값 탭 상태
     private var holding = false
 
@@ -59,8 +65,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private val gravity = 1.2f
     private val playerSize = 100f // 파리 크기 (이미지 크기 조절용)
     private val playerRadius = playerSize / 2
-    private val playerRect = RectF()
-    
+
     // 배경 관련 변수
     private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.background)
     private var bgX1 = 0f
@@ -80,10 +85,6 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private var bestScore = 0
     private var timeCounter = 0
     private val fps = 60 // 프레임 설정
-
-    // Text style
-    private val scoreStyle = TextStyle(60f, Color.DKGRAY)
-    private val bestScoreStyle = TextStyle(40f, Color.DKGRAY)
 
     // 초기 설정
     init {
@@ -131,7 +132,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
             try {
                 canvas = holder.lockCanvas()
                 synchronized(holder) {
-                    update()
+                    update() // 게임 동작 업데이트
                     drawCanvas(canvas) // canvas를 전달
                 }
             } catch (e: Exception) {
@@ -152,8 +153,10 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         centerY = h / 2f - startH / 2f
     }
 
+    // 게임 동작 업데이트
     private fun update() {
-        if (viewState == ViewState.PLAY && gameState == GameState.GAMEOVER) return
+        // 게임오버 상태이거나 일시정지 상태일때
+        if (gameState == GameState.GAMEOVER || gameState == GameState.PAUSE) return
 
         // 배경 화면 속도
         bgX1 -= bgScrollSpeed
@@ -256,7 +259,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         // 파리 그리기
         val left = x - playerSize / 2
         val top = y - playerSize / 2
-        playerRect.set(left, top, left + playerSize, top + playerSize)
+        val playerRect = RectF(left, top, left + playerSize, top + playerSize)
         canvas.drawBitmap(currentPlayer, null, playerRect, null)
 
         // 장애물 그리기
@@ -266,14 +269,18 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
         // 게임오버 텍스트
         if (gameState == GameState.GAMEOVER) {
-            gameOverTextRect.set(centerX, centerY, centerX + startW, centerY + startH)
+            val gameOverTextRect = RectF(centerX, centerY, centerX + startW, centerY + startH)
             canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
         }
 
+        // 플레이 화면 세팅 아이콘 그리기
+        settingIconBtnRect.set(width - 150f, 100f, width - 50f, 200f)
+        canvas.drawBitmap(settingIconBtn, null, settingIconBtnRect, null)
+
         // 점수 표시
-        CanvasUtil.drawText(canvas, "Score: $score", 50f, 150f, scoreStyle)
+        CanvasUtil.drawText(canvas, "Score: $score", 50f, 150f, TextStyle(60f, Color.DKGRAY))
         // 최고 점수 표시
-        CanvasUtil.drawText(canvas, "Best: $bestScore", 50f, 200f, bestScoreStyle)
+        CanvasUtil.drawText(canvas, "Best: $bestScore", 50f, 200f, TextStyle(40f, Color.DKGRAY))
     }
     
     // 메뉴 화면 그리기
@@ -351,7 +358,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     
     // 플레이 터치 이벤트
     private fun handleGameplayTouch(event: MotionEvent) {
-        // 게임 실행중일때
+        // 게임 실행중 일때
         if(gameState == GameState.PLAY) {
             if (clickMode == ClickMode.CLICK_TAP) {
                 if (event.action == MotionEvent.ACTION_DOWN) {
@@ -364,6 +371,13 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
                     MotionEvent.ACTION_DOWN -> holding = true
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> holding = false
                 }
+            }
+            // 플레이 화면 세팅 아이콘 클릭할때
+            if(settingIconBtnRect.contains(event.x, event.y)){
+                // 일시정지
+                gameState = if (gameState == GameState.PLAY) GameState.PAUSE else GameState.PLAY
+                // 팝업 호출
+                popupView.showPopup()
             }
         }
         // 게임 오버시
@@ -432,7 +446,11 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         difficultyLevel = score / 5 + 1
 
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
-        spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10)
-            .coerceAtLeast(40)
+        spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40)
+    }
+
+    // 일시정지 해제
+    fun gameResume() {
+        gameState = if (gameState == GameState.PLAY) GameState.PAUSE else GameState.PLAY
     }
 }
