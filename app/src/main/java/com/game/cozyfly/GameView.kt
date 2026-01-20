@@ -34,7 +34,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private var scrollSpeed = baseScrollSpeed
     private var spawnTimer = 0
     private var spawnInterval = baseSpawnInterval
-    private var gameState = GameState.PLAY // 초기값 실행 상태
+    private var gameState = GameState.READY // 초기값 실행 상태
     private var viewState = ViewState.MENU // 초기값 메뉴 화면
     private var bgmState = ClickMode.BGM_ON // 초기값 bgm 상태
     private var startW = 500f // 버튼 가로
@@ -133,6 +133,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
                 canvas = holder.lockCanvas()
                 synchronized(holder) {
                     update() // 게임 동작 업데이트
+                    updateBackground() // 배경 업데이트
                     drawCanvas(canvas) // canvas를 전달
                 }
             } catch (e: Exception) {
@@ -155,20 +156,8 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
     // 게임 동작 업데이트
     private fun update() {
-        // 게임오버 상태이거나 일시정지 상태일때
-        if (gameState == GameState.GAMEOVER || gameState == GameState.PAUSE) return
-
-        // 배경 화면 속도
-        bgX1 -= bgScrollSpeed
-        bgX2 -= bgScrollSpeed
-
-        // 배경 화면 밖으로 나가면 다시 오른쪽 으로
-        if (bgX1 + background.width < 0) {
-            bgX1 = bgX2 + background.width
-        }
-        if (bgX2 + background.width < 0) {
-            bgX2 = bgX1 + background.width
-        }
+        // 게임플레이 상태 일때만 동작
+        if (gameState != GameState.PLAY) return
 
         // 홀드 모드일때
         if (clickMode == ClickMode.CLICK_HOLD && holding) {
@@ -241,6 +230,23 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
         // 난이도 조절
         updateDifficulty()
+    }
+
+    // 배경 업데이트
+    private fun updateBackground() {
+        // 게임오버 상태이거나 일시정지 상태일때
+        if (gameState == GameState.GAMEOVER || gameState == GameState.PAUSE) return
+        // 배경 화면 속도
+        bgX1 -= bgScrollSpeed
+        bgX2 -= bgScrollSpeed
+
+        // 배경 화면 밖으로 나가면 다시 오른쪽 으로
+        if (bgX1 + background.width < 0) {
+            bgX1 = bgX2 + background.width
+        }
+        if (bgX2 + background.width < 0) {
+            bgX2 = bgX1 + background.width
+        }
     }
 
     // 화면 상태별로 캔버스에 요소 그리기
