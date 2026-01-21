@@ -36,7 +36,6 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private var spawnInterval = baseSpawnInterval
     private var gameState = GameState.READY // 초기값 실행 상태
     private var viewState = ViewState.MENU // 초기값 메뉴 화면
-    private var bgmState = ClickMode.BGM_ON // 초기값 bgm 상태
     private var startW = 500f // 버튼 가로
     private var startH = 300f // 버튼 세로
     private var centerX = 0f // 중앙 X좌표 값
@@ -51,8 +50,10 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private val settingsButtonRect = RectF()
     private val bgmButtonRect = RectF()
     private val settingIconBtnRect = RectF()
-    private var clickMode = ClickMode.CLICK_TAP // 초기값 탭 상태
-    private var holding = false
+    var bgmState = ClickMode.BGM_ON // 초기값 bgm 상태
+    var clickMode = ClickMode.CLICK_TAP // 초기값 탭 상태
+    var holding = false
+    var popupYn = false
 
     // 파리 관련 변수
     private val playerImg1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
@@ -80,7 +81,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private val obstacleMargin = 50f
 
     // 점수 관련 변수
-    private val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+    val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
     private var score = 0
     private var bestScore = 0
     private var timeCounter = 0
@@ -365,7 +366,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 플레이 터치 이벤트
     private fun handleGameplayTouch(event: MotionEvent) {
         // 게임 실행중 일때
-        if(gameState == GameState.PLAY) {
+        if(gameState == GameState.PLAY && !popupYn) {
             if (clickMode == ClickMode.CLICK_TAP) {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     velocityY = -20f   // 점프
@@ -375,7 +376,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
             } else {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> holding = true
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> holding = false
+                    MotionEvent.ACTION_UP -> holding = false
                 }
             }
             // 플레이 화면 세팅 아이콘 클릭할때
@@ -383,6 +384,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
                 // 일시정지
                 gameState = if (gameState == GameState.PLAY) GameState.PAUSE else GameState.PLAY
                 // 팝업 호출
+                popupYn = true
                 popupView.showPopup()
             }
         }
