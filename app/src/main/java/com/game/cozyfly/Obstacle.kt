@@ -7,8 +7,8 @@ import android.graphics.*
 class Obstacle(
     var x: Float,
     var y: Float,
-    val width: Float,
-    val height: Float,
+    var width: Float,
+    var height: Float,
     private val bitmap: Bitmap
 ) {
     fun update(speed: Float) {

@@ -8,12 +8,14 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import kotlin.random.Random
 import androidx.core.content.edit
+import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.util.CanvasUtil
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.BgmListener
+import com.game.cozyfly.util.ButtonUtil
 
 @SuppressLint("ViewConstructor")
 class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
@@ -36,8 +38,6 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private var spawnInterval = baseSpawnInterval
     private var gameState = GameState.READY // 초기값 실행 상태
     private var viewState = ViewState.MENU // 초기값 메뉴 화면
-    private var startW = 500f // 버튼 가로
-    private var startH = 300f // 버튼 세로
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
@@ -60,12 +60,11 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private val playerImg2 = BitmapFactory.decodeResource(resources, R.drawable.fly2)
     // 현재 사용할 이미지
     private var currentPlayer = playerImg1
-    private var x = 300f
-    private var y = 500f
+    private var playerX = 0f // 파리 X좌표
+    private var playerY = 0f // 파리 Y좌표
     private var velocityY = 0f
     private val gravity = 1.2f
-    private val playerSize = 100f // 파리 크기 (이미지 크기 조절용)
-    private val playerRadius = playerSize / 2
+    private val playerRadius = SizeConstants.PLAYER_WIDTH / 2
 
     // 배경 관련 변수
     private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.background)
@@ -100,15 +99,15 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
     // surfaceView 생성
     override fun surfaceCreated(holder: SurfaceHolder) {
-        // 버튼 위치 계산
-        centerX = (width - startW) / 2f
-        centerY = (height - startH) / 2f
+        // 중앙 위치 계산
+        centerX = width / 2f
+        centerY = height / 2f
         // 쓰레드 실행
         running = true
         gameThread = Thread(this)
         gameThread.start()
     }
-    
+
     // surfaceView 변경
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         // 필요 없으면 비워둬도 OK
@@ -150,9 +149,9 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 가로/세로 전환시 호출
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-
-        centerX = w / 2f - startW / 2f
-        centerY = h / 2f - startH / 2f
+        // 중앙 위치 계산
+        centerX = w / 2f
+        centerY = h / 2f
     }
 
     // 게임 동작 업데이트
@@ -171,15 +170,15 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         }
         
         // 플레이어 이동
-        y += velocityY
+        playerY += velocityY
 
         // 플레이어 화면이동 제한
-        if (y - playerRadius < 0f) {
-            y = playerRadius
+        if (playerY - playerRadius < 0f) {
+            playerY = playerRadius
             velocityY = 0f
         }
-        if (y + playerRadius > height.toFloat()) {
-            y = height.toFloat() - playerRadius
+        if (playerY + playerRadius > height) {
+            playerY = height - playerRadius
             velocityY = 0f
         }
 
@@ -203,7 +202,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
         // 충돌 판정
         for (obs in obstacles) {
-            if (obs.collidesWith(x, y, playerRadius)) {
+            if (obs.collidesWith(playerX, playerY, playerRadius)) {
                 gameState = GameState.GAMEOVER
 
                 if (score > bestScore) {
@@ -264,9 +263,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
     private fun drawGame(canvas: Canvas) {
         // 파리 그리기
-        val left = x - playerSize / 2
-        val top = y - playerSize / 2
-        val playerRect = RectF(left, top, left + playerSize, top + playerSize)
+        val playerRect = ButtonUtil.getButtonSize(playerX, playerY, SizeConstants.PLAYER_WIDTH, SizeConstants.PLAYER_HEIGHT)
         canvas.drawBitmap(currentPlayer, null, playerRect, null)
 
         // 장애물 그리기
@@ -276,7 +273,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
         // 게임오버 텍스트
         if (gameState == GameState.GAMEOVER) {
-            val gameOverTextRect = RectF(centerX, centerY, centerX + startW, centerY + startH)
+            val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
             canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
         }
 
@@ -293,27 +290,27 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 메뉴 화면 그리기
     private fun drawMenu(canvas: Canvas) {
         // start 버튼
-        startButtonRect.set(centerX, centerY, centerX + startW, centerY + startH)
+        startButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.START_BTN_WIDTH, SizeConstants.START_BTN_HEIGHT))
         canvas.drawBitmap(startBtn, null, startButtonRect, null)
 
         // setting 버튼
-        settingsButtonRect.set(centerX-50f, centerY + 150f, centerX + startW + 50f, centerY + startH + 250f)
+        settingsButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
         canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
     }
 
     // 세팅 화면 그리기
     private fun drawSettings(canvas: Canvas) {
         // 세팅 글자
-        settingsButtonRect.set(centerX-50f, 100f, centerX + startW + 50f, startH + 200f)
+        settingsButtonRect.set(ButtonUtil.getButtonSize(centerX, 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
         canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
         // 모드 버튼
-        modeButtonRect.set(width / 2f - 200, centerY, width / 2f + 200, centerY + 100f)
+        modeButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, clickMode, modeButtonRect)
         // 배경음 조절 버튼
-        bgmButtonRect.set(width / 2f - 200, centerY + 150f, width / 2f + 200, centerY + 250f)
+        bgmButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 150f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, bgmState, bgmButtonRect)
         // 뒤로가기 버튼
-        backButtonRect.set(width / 2f - 200, centerY + 500f, width / 2f + 200, centerY + 600f)
+        backButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, ClickMode.BACK, backButtonRect)
     }
 
@@ -409,29 +406,30 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
         obstacles.add(
             Obstacle(
-                x = width.toFloat(),
-                y = randomY,
-                width = obstacleWidth,
-                height = obstacleHeight,
-                bitmap = obstacleBitmap
+                width.toFloat(),
+                randomY,
+                obstacleWidth,
+                obstacleHeight,
+                obstacleBitmap
             )
         )
-        
+
         obstacles.add(
             Obstacle(
-                x = width.toFloat(),
-                y = randomY + obstacleHeight,
-                width = obstacleWidth,
-                height = obstacleHeight,
-                bitmap = obstacleBitmap
+                width.toFloat(),
+                randomY + obstacleHeight,
+                obstacleWidth,
+                obstacleHeight,
+                obstacleBitmap
             )
         )
     }
 
     // 게임 초기화
     private fun resetGame() {
-        x = 300f
-        y = height / 2f
+        // 초기 시작점
+        playerX = 200f
+        playerY = height / 2f
         velocityY = 0f
 
         obstacles.clear()

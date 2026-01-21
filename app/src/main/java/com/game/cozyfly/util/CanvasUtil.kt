@@ -7,7 +7,7 @@ import android.graphics.RectF
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
 
-// canvas object
+// 캔버스 관련 Util
 object CanvasUtil {
     private val paint = Paint()
 
