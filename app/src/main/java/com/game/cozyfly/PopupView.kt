@@ -13,8 +13,10 @@ import android.view.View
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
+import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.ViewState
+import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
 
 @SuppressLint("ViewConstructor")
@@ -97,18 +99,15 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
     
     // 팝업 배경 그리기
     private fun drawBackground(canvas: Canvas) {
+        // 반투명 배경
         val bgPaint = Paint().apply {
-            color = "#AA000000".toColorInt() // 반투명 배경
+            color = "#AA000000".toColorInt()
         }
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
 
-        val boxW = width * 0.8f
-        val boxH = height * 0.7f
-        val left = (width - boxW) / 2
-        val top = (height - boxH) / 2
-
         // 배경 이미지 전체를 View 크기로 맞춰서 그리기
-        popupRect.set(left, top, left + boxW, top + boxH)
+        popupRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, height.toFloat() / 2, width * 0.8f, height * 0.7f))
+        // 모서리 라운드 처리
         val path = android.graphics.Path().apply {
             addRoundRect(popupRect, 40f, 40f, android.graphics.Path.Direction.CW)
         }
@@ -121,8 +120,7 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
     // 팝업 버튼 그리기
     private fun drawBtn(canvas: Canvas) {
         // 세팅 글자
-        val btnLeft = (width - btnW) / 2
-        settingsTextRect.set(btnLeft, popupRect.top, btnLeft + btnW, popupRect.top + btnH)
+        settingsTextRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, popupRect.top + 100f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
         canvas.drawBitmap(settingBtn, null, settingsTextRect, null)
 
         // 닫기 버튼 영역 계산
@@ -142,10 +140,10 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
         canvas.drawLine(closeBtnRect.right, closeBtnRect.top, closeBtnRect.left, closeBtnRect.bottom, xPaint)
 
         // 모드 버튼
-        modeButtonRect.set(width / 2f - 200, popupRect.top + 400f, width / 2f + 200, popupRect.top + 500f)
+        modeButtonRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, height.toFloat() / 2, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, clickMode, modeButtonRect)
         // 배경음 조절 버튼
-        bgmButtonRect.set(width / 2f - 200, popupRect.top + 550f, width / 2f + 200, popupRect.top + 650f)
+        bgmButtonRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, modeButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, bgmState, bgmButtonRect)
     }
 }

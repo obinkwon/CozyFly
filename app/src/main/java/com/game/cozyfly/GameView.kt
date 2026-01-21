@@ -204,11 +204,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         for (obs in obstacles) {
             if (obs.collidesWith(playerX, playerY, playerRadius)) {
                 gameState = GameState.GAMEOVER
-
-                if (score > bestScore) {
-                    bestScore = score
-                    prefs.edit { putInt("BEST_SCORE", bestScore) }
-                }
+                prefs.edit { putInt("BEST_SCORE", bestScore) }
                 break
             }
         }
@@ -217,6 +213,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         timeCounter++
         if (timeCounter >= fps) {
             score++
+            if (score > bestScore) bestScore = score
             timeCounter = 0
         }
 
@@ -234,7 +231,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
     // 배경 업데이트
     private fun updateBackground() {
-        // 게임오버 상태이거나 일시정지 상태일때
+        // 게임오버 상태이거나 일시정지 상태일때 동작안함
         if (gameState == GameState.GAMEOVER || gameState == GameState.PAUSE) return
         // 배경 화면 속도
         bgX1 -= bgScrollSpeed
