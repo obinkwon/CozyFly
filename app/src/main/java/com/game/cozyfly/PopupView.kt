@@ -22,8 +22,6 @@ import com.game.cozyfly.util.CanvasUtil
 @SuppressLint("ViewConstructor")
 class PopupView(context: Context, val gameView: GameView) : View(context) {
 
-    private var btnW = 500f // 버튼 가로
-    private var btnH = 300f // 버튼 세로
     private var showing = false
     private val background = BitmapFactory.decodeResource(resources, R.drawable.popup_background)
     private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)

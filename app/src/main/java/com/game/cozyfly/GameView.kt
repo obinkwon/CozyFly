@@ -275,7 +275,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         }
 
         // 플레이 화면 세팅 아이콘 그리기
-        settingIconBtnRect.set(width - 150f, 100f, width - 50f, 200f)
+        settingIconBtnRect.set(ButtonUtil.getButtonSize(width - 100f, 150f, SizeConstants.SETTING_ICON_WIDTH, SizeConstants.SETTING_ICON_HEIGHT))
         canvas.drawBitmap(settingIconBtn, null, settingIconBtnRect, null)
 
         // 점수 표시
