@@ -33,13 +33,16 @@ class MainActivity : ComponentActivity(), GameEventListener {
         // 게임 뷰 추가
         val gameView = GameView(this, this, gameConfig)
         // 팝업 뷰 추가
-        val popupView = PopupView(this, this, gameConfig)
-        gameView.popupView = popupView   // popupView 넘겨주기
+        val settingPopupView = SettingPopupView(this, this, gameConfig)
+        val sharePopupView = SharePopupView(this, this, gameConfig)
+        gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
+        gameView.sharePopupView = sharePopupView    // sharePopupView 넘겨주기
 
         // 컨테이너 생성
         val container = FrameLayout(this)
         container.addView(gameView)
-        container.addView(popupView)
+        container.addView(settingPopupView)
+        container.addView(sharePopupView)
 
         setContentView(container)
         // 배경음 초기화

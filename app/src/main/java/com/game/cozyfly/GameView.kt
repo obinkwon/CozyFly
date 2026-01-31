@@ -20,13 +20,15 @@ import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.listener.GameEventListener
 
 @SuppressLint("ViewConstructor")
-class GameView(context: Context,
-               private val eventListener: GameEventListener,
-               private val gameConfig: GameConfig,
+class GameView(
+    context: Context,
+    private val eventListener: GameEventListener,
+    private val gameConfig: GameConfig,
 ) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
 
     // 팝업 view 변수
-    lateinit var popupView: PopupView
+    lateinit var settingPopupView: SettingPopupView
+    lateinit var sharePopupView: SharePopupView
 
     // 쓰레드 변수
     private var gameThread = Thread(this)
@@ -231,18 +233,19 @@ class GameView(context: Context,
 
     // 배경 업데이트
     private fun updateBackground() {
-        // 게임오버 상태이거나 일시정지 상태일때 동작안함
-        if (gameConfig.gameState == GameState.GAMEOVER || gameConfig.gameState == GameState.PAUSE) return
-        // 배경 화면 속도
-        bgX1 -= bgScrollSpeed
-        bgX2 -= bgScrollSpeed
+        // 준비화면 상태이거나 게임플레이 상태일때 동작
+        if (gameConfig.gameState == GameState.READY || gameConfig.gameState == GameState.PLAY) {
+            // 배경 화면 속도
+            bgX1 -= bgScrollSpeed
+            bgX2 -= bgScrollSpeed
 
-        // 배경 화면 밖으로 나가면 다시 오른쪽 으로
-        if (bgX1 + background.width < 0) {
-            bgX1 = bgX2 + background.width
-        }
-        if (bgX2 + background.width < 0) {
-            bgX2 = bgX1 + background.width
+            // 배경 화면 밖으로 나가면 다시 오른쪽 으로
+            if (bgX1 + background.width < 0) {
+                bgX1 = bgX2 + background.width
+            }
+            if (bgX2 + background.width < 0) {
+                bgX2 = bgX1 + background.width
+            }
         }
     }
 
@@ -316,7 +319,7 @@ class GameView(context: Context,
         backButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, ClickMode.BACK, backButtonRect)
     }
-
+    
     // 배경 화면 그리기
     private fun drawBackground (canvas: Canvas) {
         canvas.drawBitmap(background, bgX1, 0f, null)
@@ -387,22 +390,28 @@ class GameView(context: Context,
                 // 플레이 화면 세팅 아이콘 클릭할때
                 if (settingIconBtnRect.contains(event.x, event.y)) {
                     holding = false
-                    // 일시정지
-                    eventListener.onGameStateToggle(GameState.PAUSE)
-                    // 팝업 호출
-                    popupView.showPopup()
+                    eventListener.onGameStateToggle(GameState.PAUSE) // 일시정지
+                    settingPopupView.showPopup() // 팝업 호출
                 }
             }
             // 게임 오버시 진행
             GameState.GAMEOVER -> {
                 if (event.action == MotionEvent.ACTION_DOWN) {
-                    // 재시작
-                    resetGame()
+                    // 재시작 버튼 클릭
+                    if (restartBtnRect.contains(event.x, event.y)) {
+                        resetGame() // 재시작
+                    }
+                    // 공유 버튼 클릭
+                    else if (shareBtnRect.contains(event.x, event.y)) {
+                        eventListener.onGameStateToggle(GameState.SHARE) // 공유
+                        sharePopupView.showPopup() // 팝업 호출
+                    }
                 }
             }
-
+            // 기타
             GameState.PAUSE,
-            GameState.READY -> {
+            GameState.READY,
+            GameState.SHARE-> {
                 // 아무 입력도 안 받음
                 holding = false
             }
@@ -469,35 +478,4 @@ class GameView(context: Context,
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
         spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40)
     }
-
-    fun makeScoreImage(context: Context, score: Int): Bitmap {
-        val resources = context.resources
-
-        // 배경 이미지 로드
-        val background = BitmapFactory.decodeResource(resources, R.drawable.background)
-        // 배경 크기 그대로 비트맵 생성
-        val bitmap = Bitmap.createBitmap(background.width, background.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-
-        // 배경 그리기
-        canvas.drawBitmap(background, 0f, 0f, null)
-
-        // 텍스트 스타일 설정
-        val paint = Paint().apply {
-            color = Color.WHITE
-            textSize = 100f
-            typeface = Typeface.DEFAULT_BOLD
-            textAlign = Paint.Align.CENTER
-            isAntiAlias = true
-        }
-
-        // 가운데에 점수 출력
-        val x = background.width / 2f
-        val y = background.height / 2f
-
-        canvas.drawText("Score: $score", x, y, paint)
-
-        return bitmap
-    }
-
 }

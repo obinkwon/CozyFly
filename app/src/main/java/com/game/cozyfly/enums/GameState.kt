@@ -5,5 +5,6 @@ enum class GameState {
     PLAY,
     GAMEOVER,
     PAUSE,
+    SHARE,
     ;
 }
