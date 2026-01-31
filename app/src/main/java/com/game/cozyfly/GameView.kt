@@ -3,6 +3,7 @@ package com.game.cozyfly
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
+import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -10,15 +11,19 @@ import kotlin.random.Random
 import androidx.core.content.edit
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.util.CanvasUtil
+import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
-import com.game.cozyfly.listener.BgmListener
 import com.game.cozyfly.util.ButtonUtil
+import com.game.cozyfly.listener.GameEventListener
 
 @SuppressLint("ViewConstructor")
-class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
+class GameView(context: Context,
+               private val eventListener: GameEventListener,
+               private val gameConfig: GameConfig,
+) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
 
     // 팝업 view 변수
     lateinit var popupView: PopupView
@@ -36,8 +41,6 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private var scrollSpeed = baseScrollSpeed
     private var spawnTimer = 0
     private var spawnInterval = baseSpawnInterval
-    private var gameState = GameState.READY // 초기값 실행 상태
-    private var viewState = ViewState.MENU // 초기값 메뉴 화면
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
@@ -50,10 +53,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private val settingsButtonRect = RectF()
     private val bgmButtonRect = RectF()
     private val settingIconBtnRect = RectF()
-    var bgmState = ClickMode.BGM_ON // 초기값 bgm 상태
-    var clickMode = ClickMode.CLICK_TAP // 초기값 탭 상태
     var holding = false
-    var popupYn = false
 
     // 파리 관련 변수
     private val playerImg1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
@@ -90,10 +90,6 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     init {
         // 최고 점수 설정
         bestScore = prefs.getInt("BEST_SCORE", 0)
-        // 설정한 클릭 모드 설정
-        clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.CLICK_TAP.type)) ?: ClickMode.CLICK_TAP
-        // 설정한 bgm 모드 설정
-        bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
         holder.addCallback(this)
     }
 
@@ -157,10 +153,10 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 게임 동작 업데이트
     private fun update() {
         // 게임플레이 상태 일때만 동작
-        if (gameState != GameState.PLAY) return
+        if (gameConfig.gameState != GameState.PLAY) return
 
         // 홀드 모드일때
-        if (clickMode == ClickMode.CLICK_HOLD && holding) {
+        if (gameConfig.clickMode == ClickMode.CLICK_HOLD && holding) {
             velocityY = -20f  // 원하는 상승 속도
             currentPlayer = playerImg2
             flapTimer = flapDuration
@@ -203,7 +199,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         // 충돌 판정
         for (obs in obstacles) {
             if (obs.collidesWith(playerX, playerY, playerRadius)) {
-                gameState = GameState.GAMEOVER
+                eventListener.onGameStateToggle(GameState.GAMEOVER)
                 prefs.edit { putInt("BEST_SCORE", bestScore) }
                 break
             }
@@ -232,7 +228,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 배경 업데이트
     private fun updateBackground() {
         // 게임오버 상태이거나 일시정지 상태일때 동작안함
-        if (gameState == GameState.GAMEOVER || gameState == GameState.PAUSE) return
+        if (gameConfig.gameState == GameState.GAMEOVER || gameConfig.gameState == GameState.PAUSE) return
         // 배경 화면 속도
         bgX1 -= bgScrollSpeed
         bgX2 -= bgScrollSpeed
@@ -251,7 +247,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         // 배경 화면 그리기
         drawBackground(canvas)
         // 화면 상태별로 실행
-        when (viewState) {
+        when (gameConfig.viewState) {
             ViewState.MENU -> drawMenu(canvas)
             ViewState.PLAY -> drawGame(canvas)
             ViewState.SETTINGS -> drawSettings(canvas)
@@ -269,7 +265,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         }
 
         // 게임오버 텍스트
-        if (gameState == GameState.GAMEOVER) {
+        if (gameConfig.gameState == GameState.GAMEOVER) {
             val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
             canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
         }
@@ -302,10 +298,10 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
         // 모드 버튼
         modeButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, clickMode, modeButtonRect)
+        CanvasUtil.drawButton(canvas, gameConfig.clickMode, modeButtonRect)
         // 배경음 조절 버튼
         bgmButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 150f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, bgmState, bgmButtonRect)
+        CanvasUtil.drawButton(canvas, gameConfig.bgmState, bgmButtonRect)
         // 뒤로가기 버튼
         backButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, ClickMode.BACK, backButtonRect)
@@ -320,7 +316,8 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (viewState) {
+        Log.d("GameView", "gameConfig.viewState :: "+ gameConfig.viewState)
+        when (gameConfig.viewState) {
             ViewState.MENU -> handleMenuTouch(event)
             ViewState.SETTINGS -> handleSettingsTouch(event)
             ViewState.PLAY -> handleGameplayTouch(event)
@@ -333,10 +330,10 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     private fun handleMenuTouch(event: MotionEvent) {
         if (event.action == MotionEvent.ACTION_DOWN) {
             if (startButtonRect.contains(event.x, event.y)) {
-                viewState = ViewState.PLAY
+                eventListener.onViewStateToggle(ViewState.PLAY)
                 resetGame()   // 기존 플레이어 위치/점수/장애물 초기화
             } else if (settingsButtonRect.contains(event.x, event.y)) {
-                viewState = ViewState.SETTINGS
+                eventListener.onViewStateToggle(ViewState.SETTINGS)
             }
         }
     }
@@ -344,49 +341,60 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
     // 세팅 터치 이벤트
     private fun handleSettingsTouch(event: MotionEvent) {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (modeButtonRect.contains(event.x, event.y)) {
-                clickMode = if(clickMode == ClickMode.CLICK_TAP) ClickMode.CLICK_HOLD else ClickMode.CLICK_TAP
-                prefs.edit { putString("CLICK_MODE", clickMode.type) }
-            } else if (backButtonRect.contains(event.x, event.y)) {
-                viewState = ViewState.MENU
-            } else if (bgmButtonRect.contains(event.x, event.y)) {
-                bgmState = if(bgmState == ClickMode.BGM_ON) ClickMode.BGM_OFF else ClickMode.BGM_ON
-                if(bgmState == ClickMode.BGM_ON) bgmListener.onBgmOn() else bgmListener.onBgmOff()
-                prefs.edit { putString("BGM_MODE", bgmState.type) }
+            when {
+                modeButtonRect.contains(event.x, event.y) -> {
+                    eventListener.onClickModeToggle()
+                }
+                bgmButtonRect.contains(event.x, event.y) -> {
+                    eventListener.onBgmToggle()
+                }
+                backButtonRect.contains(event.x, event.y) -> {
+                    eventListener.onViewStateToggle(ViewState.MENU)
+                }
             }
         }
     }
     
     // 플레이 터치 이벤트
     private fun handleGameplayTouch(event: MotionEvent) {
-        // 게임 실행중 일때
-        if(gameState == GameState.PLAY && !popupYn) {
-            if (clickMode == ClickMode.CLICK_TAP) {
+        when (gameConfig.gameState) {
+            // 게임 실행중 일때만 진행
+            GameState.PLAY -> {
+                if (gameConfig.clickMode == ClickMode.CLICK_TAP) {
+                    if (event.action == MotionEvent.ACTION_DOWN) {
+                        velocityY = -20f // 점프
+                        currentPlayer = playerImg2
+                        flapTimer = flapDuration
+                    }
+                } else {
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> holding = true
+                        MotionEvent.ACTION_UP,
+                        MotionEvent.ACTION_CANCEL -> holding = false
+                    }
+                }
+
+                // 플레이 화면 세팅 아이콘 클릭할때
+                if (settingIconBtnRect.contains(event.x, event.y)) {
+                    holding = false
+                    // 일시정지
+                    eventListener.onGameStateToggle(GameState.PAUSE)
+                    // 팝업 호출
+                    popupView.showPopup()
+                }
+            }
+            // 게임 오버시 진행
+            GameState.GAMEOVER -> {
                 if (event.action == MotionEvent.ACTION_DOWN) {
-                    velocityY = -20f   // 점프
-                    currentPlayer = playerImg2
-                    flapTimer = flapDuration
-                }
-            } else {
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> holding = true
-                    MotionEvent.ACTION_UP -> holding = false
+                    // 재시작
+                    resetGame()
                 }
             }
-            // 플레이 화면 세팅 아이콘 클릭할때
-            if(settingIconBtnRect.contains(event.x, event.y)){
-                // 일시정지
-                gameState = if (gameState == GameState.PLAY) GameState.PAUSE else GameState.PLAY
-                // 팝업 호출
-                popupYn = true
-                popupView.showPopup()
-            }
-        }
-        // 게임 오버시
-        else if(gameState == GameState.GAMEOVER) {
-            if (event.action == MotionEvent.ACTION_DOWN) {
-                // 재시작
-                resetGame()
+
+            GameState.PAUSE,
+            GameState.READY -> {
+                // 아무 입력도 안 받음
+                holding = false
             }
         }
     }
@@ -441,7 +449,7 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
 
         bgX1 = 0f
         bgX2 = background.width.toFloat()
-        gameState = GameState.PLAY
+        eventListener.onGameStateToggle(GameState.PLAY)
     }
 
     // 난이도 조절
@@ -452,8 +460,34 @@ class GameView(context: Context, val bgmListener: BgmListener) : SurfaceView(con
         spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40)
     }
 
-    // 일시정지 해제
-    fun gameResume() {
-        gameState = if (gameState == GameState.PLAY) GameState.PAUSE else GameState.PLAY
+    fun makeScoreImage(context: Context, score: Int): Bitmap {
+        val resources = context.resources
+
+        // 배경 이미지 로드
+        val background = BitmapFactory.decodeResource(resources, R.drawable.background)
+        // 배경 크기 그대로 비트맵 생성
+        val bitmap = Bitmap.createBitmap(background.width, background.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // 배경 그리기
+        canvas.drawBitmap(background, 0f, 0f, null)
+
+        // 텍스트 스타일 설정
+        val paint = Paint().apply {
+            color = Color.WHITE
+            textSize = 100f
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
+            isAntiAlias = true
+        }
+
+        // 가운데에 점수 출력
+        val x = background.width / 2f
+        val y = background.height / 2f
+
+        canvas.drawText("Score: $score", x, y, paint)
+
+        return bitmap
     }
+
 }

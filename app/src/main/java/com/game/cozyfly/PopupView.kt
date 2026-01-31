@@ -8,19 +8,23 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
 import com.game.cozyfly.constants.SizeConstants
-import com.game.cozyfly.enums.ClickMode
-import com.game.cozyfly.enums.ViewState
+import com.game.cozyfly.data.GameConfig
+import com.game.cozyfly.enums.GameState
+import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
 
 @SuppressLint("ViewConstructor")
-class PopupView(context: Context, val gameView: GameView) : View(context) {
+class PopupView(context: Context,
+                private val eventListener: GameEventListener,
+                private val gameConfig: GameConfig,
+) : View(context) {
 
     private var showing = false
     private val background = BitmapFactory.decodeResource(resources, R.drawable.popup_background)
@@ -30,8 +34,6 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
     private val popupRect = RectF()
     private val modeButtonRect = RectF()
     private val bgmButtonRect = RectF()
-    private var bgmState = gameView.bgmState
-    private var clickMode = gameView.clickMode
 
     // 팝업 표시
     fun showPopup() {
@@ -42,9 +44,7 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
     // 팝업 닫기
     private fun closePopup() {
         showing = false
-        gameView.gameResume()
-        gameView.holding = false
-        gameView.popupYn = false
+        eventListener.onGameStateToggle(GameState.PLAY) // 게임 상태 전환
         invalidate() // 화면 렌더링
     }
 
@@ -62,32 +62,22 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!showing) return false
+        if (!showing || event.action != MotionEvent.ACTION_DOWN) return false
 
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 // 닫기 버튼 클릭
                 if (closeBtnRect.contains(event.x, event.y)) {
                     closePopup()
-                    return true
                 }
                 // 모드 버튼 클릭
                 else if (modeButtonRect.contains(event.x, event.y)) {
-                    if(clickMode == ClickMode.CLICK_TAP) {
-                        gameView.clickMode = ClickMode.CLICK_HOLD
-                        clickMode = ClickMode.CLICK_HOLD
-                    } else {
-                        gameView.clickMode = ClickMode.CLICK_TAP
-                        clickMode = ClickMode.CLICK_TAP
-                    }
-                    gameView.prefs.edit { putString("CLICK_MODE", clickMode.type) }
+                    eventListener.onClickModeToggle()
                     invalidate() // 화면 렌더링
                 }
                 // BGM 버튼 클릭
                 else if (bgmButtonRect.contains(event.x, event.y)) {
-                    bgmState = if(bgmState == ClickMode.BGM_ON) ClickMode.BGM_OFF else ClickMode.BGM_ON
-                    if(bgmState == ClickMode.BGM_ON) gameView.bgmListener.onBgmOn() else gameView.bgmListener.onBgmOff()
-                    gameView.prefs.edit { putString("BGM_MODE", bgmState.type) }
+                    eventListener.onBgmToggle()
                     invalidate() // 화면 렌더링
                 }
             }
@@ -138,10 +128,10 @@ class PopupView(context: Context, val gameView: GameView) : View(context) {
         canvas.drawLine(closeBtnRect.right, closeBtnRect.top, closeBtnRect.left, closeBtnRect.bottom, xPaint)
 
         // 모드 버튼
-        modeButtonRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, height.toFloat() / 2, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, clickMode, modeButtonRect)
+        modeButtonRect.set(ButtonUtil.getButtonSize(width / 2f, height / 2f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        CanvasUtil.drawButton(canvas, gameConfig.clickMode, modeButtonRect)
         // 배경음 조절 버튼
-        bgmButtonRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, modeButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, bgmState, bgmButtonRect)
+        bgmButtonRect.set(ButtonUtil.getButtonSize(width / 2f, modeButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        CanvasUtil.drawButton(canvas, gameConfig.bgmState, bgmButtonRect)
     }
 }
