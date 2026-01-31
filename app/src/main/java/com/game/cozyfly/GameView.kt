@@ -47,12 +47,16 @@ class GameView(context: Context,
     private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private val gameOverText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.gameover)
     private val settingIconBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting_icon)
+    private val restartBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.restart)
+    private val shareBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.share)
     private val modeButtonRect = RectF()
     private val backButtonRect = RectF()
     private val startButtonRect = RectF()
     private val settingsButtonRect = RectF()
     private val bgmButtonRect = RectF()
     private val settingIconBtnRect = RectF()
+    private val restartBtnRect = RectF()
+    private val shareBtnRect = RectF()
     var holding = false
 
     // 파리 관련 변수
@@ -264,10 +268,16 @@ class GameView(context: Context,
             obs.draw(canvas)
         }
 
-        // 게임오버 텍스트
+        // 게임오버 화면 표시
         if (gameConfig.gameState == GameState.GAMEOVER) {
-            val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
+            val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY - 300f, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
             canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
+
+            restartBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.BIG_BTN_HEIGHT))
+            canvas.drawBitmap(restartBtn, null, restartBtnRect, null)
+
+            shareBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 300f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.BIG_BTN_HEIGHT))
+            canvas.drawBitmap(shareBtn, null, shareBtnRect, null)
         }
 
         // 플레이 화면 세팅 아이콘 그리기
