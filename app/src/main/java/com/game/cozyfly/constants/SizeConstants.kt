@@ -14,4 +14,6 @@ object SizeConstants {
     const val PLAYER_WIDTH = 100f
     const val PLAYER_HEIGHT = 100f
     const val BIG_BTN_HEIGHT = 200f
+    const val SMALL_BTN_WIDTH = 70f
+    const val SMALL_BTN_HEIGHT = 70f
 }

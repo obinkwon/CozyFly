@@ -3,21 +3,20 @@ package com.game.cozyfly
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
-import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import kotlin.random.Random
 import androidx.core.content.edit
 import com.game.cozyfly.constants.SizeConstants
-import com.game.cozyfly.util.CanvasUtil
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
-import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.listener.GameEventListener
+import com.game.cozyfly.util.ButtonUtil
+import com.game.cozyfly.util.CanvasUtil
+import kotlin.random.Random
 
 @SuppressLint("ViewConstructor")
 class GameView(
@@ -329,7 +328,6 @@ class GameView(
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        Log.d("GameView", "gameConfig.viewState :: "+ gameConfig.viewState)
         when (gameConfig.viewState) {
             ViewState.MENU -> handleMenuTouch(event)
             ViewState.SETTINGS -> handleSettingsTouch(event)

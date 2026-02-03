@@ -27,7 +27,8 @@ class SettingPopupView(context: Context,
 
     private var showing = false
     private val background = BitmapFactory.decodeResource(resources, R.drawable.popup_background)
-    private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
+    private val settingBtn = BitmapFactory.decodeResource(resources, R.drawable.setting)
+    private val closeBtn = BitmapFactory.decodeResource(resources, R.drawable.close)
     private val settingsTextRect = RectF()
     private var closeBtnRect = RectF()
     private val popupRect = RectF()
@@ -110,25 +111,14 @@ class SettingPopupView(context: Context,
         settingsTextRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, popupRect.top + 100f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
         canvas.drawBitmap(settingBtn, null, settingsTextRect, null)
 
-        // 닫기 버튼 영역 계산
-        val btnSize = 70f
-        closeBtnRect.set(
-            popupRect.right - btnSize - 20f,
-            popupRect.top + 20f,
-            popupRect.right - 20f,
-            popupRect.top + btnSize + 20f
-        )
-        // 닫기 버튼 그리기
-        val xPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.BLACK
-            strokeWidth = 8f
-        }
-        canvas.drawLine(closeBtnRect.left, closeBtnRect.top, closeBtnRect.right, closeBtnRect.bottom, xPaint)
-        canvas.drawLine(closeBtnRect.right, closeBtnRect.top, closeBtnRect.left, closeBtnRect.bottom, xPaint)
+        // 닫기 버튼
+        closeBtnRect.set(ButtonUtil.getButtonSize(popupRect.right - 50f, popupRect.top + 50f, SizeConstants.SMALL_BTN_WIDTH, SizeConstants.SMALL_BTN_HEIGHT))
+        canvas.drawBitmap(closeBtn, null, closeBtnRect, null)
 
         // 모드 버튼
         modeButtonRect.set(ButtonUtil.getButtonSize(width / 2f, height / 2f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, gameConfig.clickMode, modeButtonRect)
+
         // 배경음 조절 버튼
         bgmButtonRect.set(ButtonUtil.getButtonSize(width / 2f, modeButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, gameConfig.bgmState, bgmButtonRect)
