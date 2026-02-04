@@ -28,7 +28,8 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
         val gameState = GameState.READY
         val viewState = ViewState.MENU
-        gameConfig = GameConfig(bgmState, clickMode, gameState, viewState)
+        val bestScore = prefs.getInt("BEST_SCORE", 0)
+        gameConfig = GameConfig(bgmState, clickMode, gameState, viewState, bestScore)
 
         // 게임 뷰 추가
         val gameView = GameView(this, this, gameConfig)

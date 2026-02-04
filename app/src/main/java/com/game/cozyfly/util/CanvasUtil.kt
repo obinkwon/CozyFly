@@ -40,6 +40,7 @@ object CanvasUtil {
     ) {
         paint.textSize = style.size
         paint.color = style.color
+        paint.textAlign = style.align
         canvas.drawText(text, x, y, paint)
     }
 

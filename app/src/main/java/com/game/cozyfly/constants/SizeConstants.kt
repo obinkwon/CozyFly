@@ -16,4 +16,6 @@ object SizeConstants {
     const val BIG_BTN_HEIGHT = 200f
     const val SMALL_BTN_WIDTH = 70f
     const val SMALL_BTN_HEIGHT = 70f
+    const val MIDDLE_BTN_WIDTH = 300f
+    const val MIDDLE_BTN_HEIGHT = 150f
 }

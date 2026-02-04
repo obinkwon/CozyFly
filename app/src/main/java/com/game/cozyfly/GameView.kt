@@ -87,14 +87,11 @@ class GameView(
     // 점수 관련 변수
     val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
     private var score = 0
-    private var bestScore = 0
     private var timeCounter = 0
     private val fps = 60 // 프레임 설정
 
     // 초기 설정
     init {
-        // 최고 점수 설정
-        bestScore = prefs.getInt("BEST_SCORE", 0)
         holder.addCallback(this)
     }
 
@@ -205,7 +202,7 @@ class GameView(
         for (obs in obstacles) {
             if (obs.collidesWith(playerX, playerY, playerRadius)) {
                 eventListener.onGameStateToggle(GameState.GAMEOVER)
-                prefs.edit { putInt("BEST_SCORE", bestScore) }
+                prefs.edit { putInt("BEST_SCORE", gameConfig.bestScore) }
                 break
             }
         }
@@ -214,7 +211,7 @@ class GameView(
         timeCounter++
         if (timeCounter >= fps) {
             score++
-            if (score > bestScore) bestScore = score
+            if (score > gameConfig.bestScore) gameConfig.bestScore = score
             timeCounter = 0
         }
 
@@ -289,7 +286,7 @@ class GameView(
         // 점수 표시
         CanvasUtil.drawText(canvas, "Score: $score", 50f, 150f, TextStyle(60f, Color.DKGRAY))
         // 최고 점수 표시
-        CanvasUtil.drawText(canvas, "Best: $bestScore", 50f, 200f, TextStyle(40f, Color.DKGRAY))
+        CanvasUtil.drawText(canvas, "Best: ${gameConfig.bestScore}", 50f, 200f, TextStyle(40f, Color.DKGRAY))
     }
     
     // 메뉴 화면 그리기

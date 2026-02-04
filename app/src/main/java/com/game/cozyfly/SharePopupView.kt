@@ -32,15 +32,25 @@ class SharePopupView(context: Context,
     private val background = BitmapFactory.decodeResource(resources, R.drawable.popup_background)
     private val scoreBtn = BitmapFactory.decodeResource(resources, R.drawable.score)
     private val closeBtn = BitmapFactory.decodeResource(resources, R.drawable.close)
+    private val numberTexts = arrayOf(
+        BitmapFactory.decodeResource(resources, R.drawable.num_0),
+        BitmapFactory.decodeResource(resources, R.drawable.num_1),
+        BitmapFactory.decodeResource(resources, R.drawable.num_2),
+        BitmapFactory.decodeResource(resources, R.drawable.num_3),
+        BitmapFactory.decodeResource(resources, R.drawable.num_4),
+        BitmapFactory.decodeResource(resources, R.drawable.num_5),
+        BitmapFactory.decodeResource(resources, R.drawable.num_6),
+        BitmapFactory.decodeResource(resources, R.drawable.num_7),
+        BitmapFactory.decodeResource(resources, R.drawable.num_8),
+        BitmapFactory.decodeResource(resources, R.drawable.num_9)
+    )
     private val playerRect = RectF()
     private var closeBtnRect = RectF()
     private val popupRect = RectF()
     private val scoreBtnRect = RectF()
     private val bgmButtonRect = RectF()
     private val scoreTextRect = RectF()
-
-    private val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
-    private var bestScore = prefs.getInt("BEST_SCORE", 0)
+    private val numTextRect = RectF()
 
     // 팝업 표시
     fun showPopup() {
@@ -110,7 +120,7 @@ class SharePopupView(context: Context,
     // 팝업 버튼 그리기
     private fun drawBtn(canvas: Canvas) {
         // 플레이어 그리기
-        playerRect.set(ButtonUtil.getButtonSize(width / 2f, height / 2f, SizeConstants.PLAYER_WIDTH, SizeConstants.PLAYER_HEIGHT))
+        playerRect.set(ButtonUtil.getButtonSize(width / 2f, height / 2f + 100f, SizeConstants.PLAYER_WIDTH, SizeConstants.PLAYER_HEIGHT))
         canvas.drawBitmap(playerImg, null, playerRect, null)
 
         // 닫기 버튼
@@ -118,12 +128,42 @@ class SharePopupView(context: Context,
         canvas.drawBitmap(closeBtn, null, closeBtnRect, null)
 
         // score 버튼 그리기
-        scoreBtnRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.BIG_BTN_HEIGHT))
+        scoreBtnRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.top + 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.MIDDLE_BTN_HEIGHT))
         canvas.drawBitmap(scoreBtn, null, scoreBtnRect, null)
 
         // 점수 텍스트 그리기
-        scoreTextRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.top + 100f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.BIG_BTN_HEIGHT))
+        scoreTextRect.set(ButtonUtil.getButtonSize(width / 2f, scoreBtnRect.bottom + 150f, SizeConstants.SMALL_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         // 최고 점수 표시
-        CanvasUtil.drawText(canvas, "Best: $bestScore", width / 2f - 180f, height / 2f - 150f, TextStyle(100f, Color.BLACK))
+        drawScore(canvas, gameConfig.bestScore, scoreTextRect)
     }
+
+    private fun drawScore(canvas: Canvas, score: Int, rect: RectF) {
+        val scoreStr = score.toString()
+        val digitWidth = rect.width()
+        val digitHeight = rect.height()
+
+        // 전체 점수 폭
+        val totalWidth = digitWidth * scoreStr.length
+
+        // 중앙 정렬
+        var x = rect.centerX() - totalWidth / 2
+        val y = rect.top
+
+        for (ch in scoreStr) {
+            val num = ch - '0'
+            val bmp = numberTexts[num]
+
+            val dst = RectF(
+                x,
+                y,
+                x + digitWidth,
+                y + digitHeight
+            )
+
+            canvas.drawBitmap(bmp, null, dst, null)
+            x += digitWidth
+        }
+    }
+
+
 }

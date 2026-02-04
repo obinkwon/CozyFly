@@ -9,4 +9,5 @@ data class GameConfig(
     var clickMode: ClickMode,
     var gameState: GameState,
     var viewState: ViewState,
+    var bestScore: Int,
 )
