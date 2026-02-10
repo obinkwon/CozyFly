@@ -1,25 +1,24 @@
 package com.game.cozyfly
 
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
-import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.util.ButtonUtil
-import com.game.cozyfly.util.CanvasUtil
 
 @SuppressLint("ViewConstructor")
 class SharePopupView(context: Context,
@@ -32,6 +31,7 @@ class SharePopupView(context: Context,
     private val background = BitmapFactory.decodeResource(resources, R.drawable.popup_background)
     private val scoreBtn = BitmapFactory.decodeResource(resources, R.drawable.score)
     private val closeBtn = BitmapFactory.decodeResource(resources, R.drawable.close)
+    private val saveBtn = BitmapFactory.decodeResource(resources, R.drawable.save)
     private val numberTexts = arrayOf(
         BitmapFactory.decodeResource(resources, R.drawable.num_0),
         BitmapFactory.decodeResource(resources, R.drawable.num_1),
@@ -48,9 +48,8 @@ class SharePopupView(context: Context,
     private var closeBtnRect = RectF()
     private val popupRect = RectF()
     private val scoreBtnRect = RectF()
-    private val bgmButtonRect = RectF()
     private val scoreTextRect = RectF()
-    private val numTextRect = RectF()
+    private val saveButtonRect = RectF()
 
     // 팝업 표시
     fun showPopup() {
@@ -87,9 +86,8 @@ class SharePopupView(context: Context,
                 if (closeBtnRect.contains(event.x, event.y)) {
                     closePopup()
                 }
-                // BGM 버튼 클릭
-                else if (bgmButtonRect.contains(event.x, event.y)) {
-                    eventListener.onBgmToggle()
+                // 저장 버튼 클릭
+                else if (saveButtonRect.contains(event.x, event.y)) {
                     invalidate() // 화면 렌더링
                 }
             }
@@ -119,11 +117,7 @@ class SharePopupView(context: Context,
 
     // 팝업 버튼 그리기
     private fun drawBtn(canvas: Canvas) {
-        // 플레이어 그리기
-        playerRect.set(ButtonUtil.getButtonSize(width / 2f, height / 2f + 100f, SizeConstants.PLAYER_WIDTH, SizeConstants.PLAYER_HEIGHT))
-        canvas.drawBitmap(playerImg, null, playerRect, null)
-
-        // 닫기 버튼
+        // 닫기 버튼 그리기
         closeBtnRect.set(ButtonUtil.getButtonSize(popupRect.right - 50f, popupRect.top + 50f, SizeConstants.SMALL_BTN_WIDTH, SizeConstants.SMALL_BTN_HEIGHT))
         canvas.drawBitmap(closeBtn, null, closeBtnRect, null)
 
@@ -135,8 +129,17 @@ class SharePopupView(context: Context,
         scoreTextRect.set(ButtonUtil.getButtonSize(width / 2f, scoreBtnRect.bottom + 150f, SizeConstants.SMALL_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         // 최고 점수 표시
         drawScore(canvas, gameConfig.bestScore, scoreTextRect)
+
+        // 플레이어 그리기
+        playerRect.set(ButtonUtil.getButtonSize(width / 2f, height / 2f + 100f, SizeConstants.PLAYER_WIDTH, SizeConstants.PLAYER_HEIGHT))
+        canvas.drawBitmap(playerImg, null, playerRect, null)
+
+        // 저장 버튼 그리기
+        saveButtonRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.bottom - 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.MIDDLE_BTN_HEIGHT))
+        canvas.drawBitmap(saveBtn, null, saveButtonRect, null)
     }
 
+    // 점수 그리기
     private fun drawScore(canvas: Canvas, score: Int, rect: RectF) {
         val scoreStr = score.toString()
         val digitWidth = rect.width()
@@ -164,6 +167,30 @@ class SharePopupView(context: Context,
             x += digitWidth
         }
     }
+
+    // 화면 캡쳐
+    fun saveBitmapToGallery(bitmap: Bitmap) {
+        val filename = "share_${System.currentTimeMillis()}.png"
+
+        val resolver = context.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MyGame")
+        }
+
+        val imageUri = resolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        )
+
+        imageUri?.let { uri ->
+            resolver.openOutputStream(uri)?.use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+        }
+    }
+
 
 
 }
