@@ -12,12 +12,14 @@ import android.graphics.RectF
 import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.listener.GameEventListener
+import com.game.cozyfly.ui.share.ShareImageRenderer
 import com.game.cozyfly.util.ButtonUtil
 
 @SuppressLint("ViewConstructor")
@@ -88,7 +90,9 @@ class SharePopupView(context: Context,
                 }
                 // 저장 버튼 클릭
                 else if (saveButtonRect.contains(event.x, event.y)) {
-                    invalidate() // 화면 렌더링
+                    val renderer = ShareImageRenderer(context)
+                    val bitmap = renderer.render(gameConfig.bestScore)
+                    saveBitmapToGallery(bitmap)
                 }
             }
         }
@@ -169,14 +173,13 @@ class SharePopupView(context: Context,
     }
 
     // 화면 캡쳐
-    fun saveBitmapToGallery(bitmap: Bitmap) {
+    private fun saveBitmapToGallery(bitmap: Bitmap) {
         val filename = "share_${System.currentTimeMillis()}.png"
-
         val resolver = context.contentResolver
         val contentValues = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
             put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/MyGame")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CozyFly")
         }
 
         val imageUri = resolver.insert(
@@ -188,6 +191,7 @@ class SharePopupView(context: Context,
             resolver.openOutputStream(uri)?.use { stream ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
             }
+            Toast.makeText(context, "이미지가 저장되었습니다", Toast.LENGTH_SHORT).show()
         }
     }
 
