@@ -7,7 +7,6 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.edit
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.game.cozyfly.data.GameConfig
@@ -31,7 +30,8 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val gameState = GameState.READY
         val viewState = ViewState.MENU
         val bestScore = prefs.getInt("BEST_SCORE", 0)
-        gameConfig = GameConfig(bgmState, clickMode, gameState, viewState, bestScore)
+        val coinScore = prefs.getInt("COIN_SCORE", 0)
+        gameConfig = GameConfig(bgmState, clickMode, gameState, viewState, bestScore, coinScore)
 
         // 게임 뷰 추가
         val gameView = GameView(this, this, gameConfig)

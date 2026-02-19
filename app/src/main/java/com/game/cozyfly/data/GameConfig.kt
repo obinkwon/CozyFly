@@ -10,4 +10,5 @@ data class GameConfig(
     var gameState: GameState,
     var viewState: ViewState,
     var bestScore: Int,
+    var coinScore: Int,
 )

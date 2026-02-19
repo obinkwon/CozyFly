@@ -3,11 +3,13 @@ package com.game.cozyfly
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
+import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.core.content.edit
 import com.game.cozyfly.constants.SizeConstants
+import com.game.cozyfly.data.Coin
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
@@ -50,6 +52,16 @@ class GameView(
     private val settingIconBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting_icon)
     private val restartBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.restart)
     private val shareBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.share)
+    private val coinFrames: Array<Bitmap> = arrayOf(
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_1),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_2),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_3),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_4),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_5),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_6),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_7),
+        BitmapFactory.decodeResource(context.resources, R.drawable.coin1_8),
+    )
     private val modeButtonRect = RectF()
     private val backButtonRect = RectF()
     private val startButtonRect = RectF()
@@ -83,6 +95,11 @@ class GameView(
     private val obstacleWidth = 100f
     private val obstacleHeight = 100f
     private val obstacleMargin = 50f
+    
+    // 코인 관련 변수
+    private val coins = mutableListOf<Coin>()
+    private val coinWidth = 100f
+    private val coinHeight = 100f
 
     // 점수 관련 변수
     val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
@@ -187,14 +204,36 @@ class GameView(
             spawnObstacle()
         }
 
+        // 코인 생성 타이밍 (장애물보다 느리게)
+        if (spawnTimer % 80 == 0) {
+            spawnCoin()
+        }
+
+        // 코인 이동
+        val coinIterator = coins.iterator()
+        while (coinIterator.hasNext()) {
+            val coin = coinIterator.next()
+            coin.update(scrollSpeed)
+
+            // 화면 밖 제거
+            if (coin.isOffScreen()) {
+                coinIterator.remove()
+            }
+            // 플레이어 충돌
+            else if (coin.collidesWith(playerX, playerY, playerRadius)) {
+                gameConfig.coinScore++ // 코인 점수
+                coinIterator.remove()
+            }
+        }
+
         // 장애물 이동
-        val iterator = obstacles.iterator()
-        while (iterator.hasNext()) {
-            val obs = iterator.next()
+        val obstacleIterator = obstacles.iterator()
+        while (obstacleIterator.hasNext()) {
+            val obs = obstacleIterator.next()
             obs.update(scrollSpeed)
 
             if (obs.isOffScreen()) {
-                iterator.remove()
+                obstacleIterator.remove()
             }
         }
 
@@ -203,6 +242,7 @@ class GameView(
             if (obs.collidesWith(playerX, playerY, playerRadius)) {
                 eventListener.onGameStateToggle(GameState.GAMEOVER)
                 prefs.edit { putInt("BEST_SCORE", gameConfig.bestScore) }
+                prefs.edit { putInt("COIN_SCORE", gameConfig.coinScore) }
                 break
             }
         }
@@ -267,6 +307,11 @@ class GameView(
             obs.draw(canvas)
         }
 
+        // 코인 그리기
+        for (coin in coins) {
+            coin.draw(canvas)
+        }
+
         // 게임오버 화면 표시
         if (gameConfig.gameState == GameState.GAMEOVER) {
             val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY - 300f, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
@@ -287,6 +332,8 @@ class GameView(
         CanvasUtil.drawText(canvas, "Score: $score", 50f, 150f, TextStyle(60f, Color.DKGRAY))
         // 최고 점수 표시
         CanvasUtil.drawText(canvas, "Best: ${gameConfig.bestScore}", 50f, 200f, TextStyle(40f, Color.DKGRAY))
+        // 코인 표시
+        CanvasUtil.drawText(canvas, "Coin: ${gameConfig.coinScore}", 50f, 250f, TextStyle(40f, Color.DKGRAY))
     }
     
     // 메뉴 화면 그리기
@@ -444,6 +491,37 @@ class GameView(
         )
     }
 
+    // 코인 생성
+    private fun spawnCoin() {
+
+        var tryCount = 0
+        val maxTry = 10
+
+        while (tryCount < maxTry) {
+
+            val randomY = Random.nextInt(
+                100,
+                height - 200
+            ).toFloat()
+
+            val newCoin = Coin(
+                width.toFloat(),
+                randomY,
+                coinWidth,
+                coinHeight,
+                coinFrames
+            )
+
+            if (!isCoinOverlappingObstacle(newCoin.getRect())) {
+                coins.add(newCoin)
+                return
+            }
+
+            tryCount++
+        }
+    }
+
+
     // 게임 초기화
     private fun resetGame() {
         // 초기 시작점
@@ -472,5 +550,15 @@ class GameView(
 
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
         spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40)
+    }
+
+    // 겹치는지 확인
+    private fun isCoinOverlappingObstacle(coinRect: RectF): Boolean {
+        for (obs in obstacles) {
+            if (RectF.intersects(coinRect, obs.getRect())) {
+                return true
+            }
+        }
+        return false
     }
 }

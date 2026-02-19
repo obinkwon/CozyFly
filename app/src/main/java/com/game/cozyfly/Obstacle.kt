@@ -44,4 +44,9 @@ class Obstacle(
 
         return dx * dx + dy * dy < radius * radius
     }
+
+    fun getRect(): RectF {
+        return RectF(x, y, x + width, y + height)
+    }
+
 }
