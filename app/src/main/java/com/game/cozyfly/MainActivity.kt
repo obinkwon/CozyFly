@@ -5,8 +5,11 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
@@ -20,10 +23,9 @@ class MainActivity : ComponentActivity(), GameEventListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 상태바 영역까지 화면을 확장
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
+        enableEdgeToEdge() // 상태바 숨기기
         // 초기값 설정
+        prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
         val clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.CLICK_TAP.type)) ?: ClickMode.CLICK_TAP
         val bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
         val gameState = GameState.READY
@@ -94,5 +96,17 @@ class MainActivity : ComponentActivity(), GameEventListener {
     // view 상태 조절 토글
     override fun onViewStateToggle(viewState: ViewState) {
         gameConfig.viewState = viewState
+    }
+    // 현재 앱 창이 포커스를 얻거나 잃을 때 호출
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemBars()
+    }
+    // 상태바 숨기기
+    private fun hideSystemBars() {
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+
+        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 }
