@@ -104,6 +104,8 @@ class GameView(
     private val coins = mutableListOf<Coin>()
     private val coinWidth = 100f
     private val coinHeight = 100f
+    private var coinSpawnTimer = 0
+    private val coinSpawnInterval = 120 // 프레임 기준 (2초)
 
     // 점수 관련 변수
     val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
@@ -223,10 +225,6 @@ class GameView(
         if (spawnTimer > spawnInterval) {
             spawnTimer = 0
             spawnObstacle()
-        }
-
-        // 코인 생성 타이밍 (장애물보다 느리게)
-        if (spawnTimer % 80 == 0) {
             spawnCoin()
         }
 
