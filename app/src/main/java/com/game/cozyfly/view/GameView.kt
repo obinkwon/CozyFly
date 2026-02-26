@@ -2,21 +2,24 @@ package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.*
-import android.util.Log
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.core.content.edit
 import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
-import com.game.cozyfly.item.Coin
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.EffectType
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
+import com.game.cozyfly.item.Coin
 import com.game.cozyfly.item.EffectItem
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.`object`.Obstacle
@@ -104,8 +107,6 @@ class GameView(
     private val coins = mutableListOf<Coin>()
     private val coinWidth = 100f
     private val coinHeight = 100f
-    private var coinSpawnTimer = 0
-    private val coinSpawnInterval = 120 // 프레임 기준 (2초)
 
     // 점수 관련 변수
     val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
@@ -230,7 +231,6 @@ class GameView(
 
         // 효과 아이템 생성 (확률 기반)
         if (activeEffect == null && effectItems.isEmpty()) {
-            Log.d("activeEffect", "activeEffect ::: $activeEffect");
             if (Random.nextFloat() < effectSpawnChance) {
                 spawnEffectItem()
             }
@@ -607,6 +607,7 @@ class GameView(
         bgX1 = 0f
         bgX2 = background.width.toFloat()
         eventListener.onGameStateToggle(GameState.PLAY)
+        clearEffect()
     }
 
     // 난이도 조절
@@ -614,7 +615,7 @@ class GameView(
         difficultyLevel = score / 5 + 1
 
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
-        spawnInterval = (baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40)
+        spawnInterval = (baseSpawnInterval / speedMultiplier).toInt()
     }
 
     // 겹치는지 확인
@@ -644,10 +645,5 @@ class GameView(
         activeEffect = null
         speedMultiplier = 1f
         gravityMultiplier = 1f
-    }
-
-    // 효과 시간 체크
-    private fun isEffectActive(): Boolean {
-        return activeEffect != null && System.currentTimeMillis() - effectStartTime < effectDuration
     }
 }
