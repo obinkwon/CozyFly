@@ -1,17 +1,17 @@
-package com.game.cozyfly
+package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
+import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.GameState
@@ -96,8 +96,8 @@ class SettingPopupView(context: Context,
         // 배경 이미지 전체를 View 크기로 맞춰서 그리기
         popupRect.set(ButtonUtil.getButtonSize(width.toFloat() / 2, height.toFloat() / 2, width * 0.8f, height * 0.7f))
         // 모서리 라운드 처리
-        val path = android.graphics.Path().apply {
-            addRoundRect(popupRect, 40f, 40f, android.graphics.Path.Direction.CW)
+        val path = Path().apply {
+            addRoundRect(popupRect, 40f, 40f, Path.Direction.CW)
         }
         // 클리핑
         canvas.withClip(path) {

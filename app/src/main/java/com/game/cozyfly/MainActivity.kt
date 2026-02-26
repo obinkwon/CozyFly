@@ -14,6 +14,9 @@ import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.GameEventListener
+import com.game.cozyfly.view.GameView
+import com.game.cozyfly.view.SettingPopupView
+import com.game.cozyfly.view.SharePopupView
 
 class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var bgmPlayer: MediaPlayer // bgm 플레이어

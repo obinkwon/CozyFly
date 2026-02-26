@@ -1,4 +1,4 @@
-package com.game.cozyfly.data
+package com.game.cozyfly.item
 
 import android.graphics.Bitmap
 import android.graphics.Canvas

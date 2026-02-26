@@ -1,21 +1,25 @@
-package com.game.cozyfly
+package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
-import android.os.SystemClock
+import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import androidx.core.content.edit
+import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
-import com.game.cozyfly.data.Coin
+import com.game.cozyfly.item.Coin
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.data.TextStyle
 import com.game.cozyfly.enums.ClickMode
+import com.game.cozyfly.enums.EffectType
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.enums.ViewState
+import com.game.cozyfly.item.EffectItem
 import com.game.cozyfly.listener.GameEventListener
+import com.game.cozyfly.`object`.Obstacle
 import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
 import kotlin.random.Random
@@ -107,6 +111,16 @@ class GameView(
     private var timeCounter = 0
     private val fps = 60 // 프레임 설정
 
+    // 효과 관련 변수
+    private val effectItems = mutableListOf<EffectItem>()
+    private val effectItemBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.item)
+    private var activeEffect: EffectType? = null
+    private var effectStartTime = 0L
+    private val effectDuration = 5000L // 5초 유지
+    private var speedMultiplier = 1f
+    private var gravityMultiplier = 1f
+    private val effectSpawnChance = 0.005f // 0.5% 확률 (프레임당)
+
     // 초기 설정
     init {
         holder.addCallback(this)
@@ -176,12 +190,19 @@ class GameView(
 
         // 홀드 모드일때
         if (gameConfig.clickMode == ClickMode.CLICK_HOLD && holding) {
-            velocityY = -20f  // 원하는 상승 속도
+            velocityY = -20f * gravityMultiplier  // 원하는 상승 속도
             currentPlayer = playerImg2
             flapTimer = flapDuration
         } else {
             // 플레이어 중력
-            velocityY += gravity
+            velocityY += gravity * gravityMultiplier
+        }
+
+        // 효과 시간 체크
+        activeEffect?.let {
+            if (System.currentTimeMillis() - effectStartTime > effectDuration) {
+                clearEffect()
+            }
         }
         
         // 플레이어 이동
@@ -209,11 +230,19 @@ class GameView(
             spawnCoin()
         }
 
+        // 효과 아이템 생성 (확률 기반)
+        if (activeEffect == null && effectItems.isEmpty()) {
+            Log.d("activeEffect", "activeEffect ::: $activeEffect");
+            if (Random.nextFloat() < effectSpawnChance) {
+                spawnEffectItem()
+            }
+        }
+
         // 코인 이동
         val coinIterator = coins.iterator()
         while (coinIterator.hasNext()) {
             val coin = coinIterator.next()
-            coin.update(scrollSpeed)
+            coin.update(scrollSpeed * speedMultiplier)
 
             // 화면 밖 제거
             if (coin.isOffScreen()) {
@@ -226,11 +255,28 @@ class GameView(
             }
         }
 
+        // 아이템 이동
+        val effectIterator = effectItems.iterator()
+        while (effectIterator.hasNext()) {
+            val item = effectIterator.next()
+            item.update(scrollSpeed * speedMultiplier)
+
+            // 화면 밖 제거
+            if (item.isOffScreen()) {
+                effectIterator.remove()
+            }
+            // 플레이어 충돌
+            else if (item.collidesWith(playerX, playerY, playerRadius)) {
+                applyEffect(item.type)
+                effectIterator.remove()
+            }
+        }
+
         // 장애물 이동
         val obstacleIterator = obstacles.iterator()
         while (obstacleIterator.hasNext()) {
             val obs = obstacleIterator.next()
-            obs.update(scrollSpeed)
+            obs.update(scrollSpeed * speedMultiplier)
 
             if (obs.isOffScreen()) {
                 obstacleIterator.remove()
@@ -310,6 +356,11 @@ class GameView(
         // 코인 그리기
         for (coin in coins) {
             coin.draw(canvas)
+        }
+
+        // 아이템 그리기
+        for (item in effectItems) {
+            item.draw(canvas)
         }
 
         // 게임오버 화면 표시
@@ -417,7 +468,7 @@ class GameView(
             GameState.PLAY -> {
                 if (gameConfig.clickMode == ClickMode.CLICK_TAP) {
                     if (event.action == MotionEvent.ACTION_DOWN) {
-                        velocityY = -20f // 점프
+                        velocityY = -20f * gravityMultiplier // 점프
                         currentPlayer = playerImg2
                         flapTimer = flapDuration
                     }
@@ -521,6 +572,22 @@ class GameView(
         }
     }
 
+    // 아이템 생성
+    private fun spawnEffectItem() {
+        val randomY = Random.nextInt(100, height - 200).toFloat()
+        val randomType = EffectType.entries.toTypedArray().random()
+
+        effectItems.add(
+            EffectItem(
+                width.toFloat(),
+                randomY,
+                100f,
+                100f,
+                effectItemBitmap,
+                randomType
+            )
+        )
+    }
 
     // 게임 초기화
     private fun resetGame() {
@@ -560,5 +627,29 @@ class GameView(
             }
         }
         return false
+    }
+
+    // 효과 적용
+    private fun applyEffect(type: EffectType) {
+        activeEffect = type
+        effectStartTime = System.currentTimeMillis()
+
+        when (type) {
+            EffectType.SPEED_UP -> speedMultiplier = 1.8f
+            EffectType.SPEED_DOWN -> speedMultiplier = 0.5f
+            EffectType.REVERSE_JUMP -> gravityMultiplier = -1f
+        }
+    }
+
+    // 효과 해제
+    private fun clearEffect() {
+        activeEffect = null
+        speedMultiplier = 1f
+        gravityMultiplier = 1f
+    }
+
+    // 효과 시간 체크
+    private fun isEffectActive(): Boolean {
+        return activeEffect != null && System.currentTimeMillis() - effectStartTime < effectDuration
     }
 }

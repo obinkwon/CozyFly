@@ -1,4 +1,4 @@
-package com.game.cozyfly
+package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
 import android.content.ContentValues
@@ -15,12 +15,14 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
+import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.GameState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.ui.share.ShareImageRenderer
 import com.game.cozyfly.util.ButtonUtil
+import kotlin.text.iterator
 
 @SuppressLint("ViewConstructor")
 class SharePopupView(context: Context,

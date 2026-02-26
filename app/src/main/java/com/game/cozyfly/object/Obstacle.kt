@@ -1,7 +1,8 @@
-package com.game.cozyfly
+package com.game.cozyfly.`object`
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.*
+import android.graphics.RectF
 
 // 장애물 Class
 class Obstacle(
