@@ -513,11 +513,7 @@ class GameView(
     private fun spawnObstacle() {
         val minY = obstacleMargin
         val maxY = height - obstacleHeight - obstacleMargin
-
-        val randomY = Random.nextInt(
-            minY.toInt(),
-            maxY.toInt()
-        ).toFloat()
+        val randomY = Random.nextInt(minY.toInt(), maxY.toInt()).toFloat()
 
         obstacles.add(
             Obstacle(
@@ -542,17 +538,12 @@ class GameView(
 
     // 코인 생성
     private fun spawnCoin() {
-
         var tryCount = 0
         val maxTry = 10
 
         while (tryCount < maxTry) {
 
-            val randomY = Random.nextInt(
-                100,
-                height - 200
-            ).toFloat()
-
+            val randomY = Random.nextInt(100, height - 200).toFloat()
             val newCoin = Coin(
                 width.toFloat(),
                 randomY,
@@ -560,8 +551,8 @@ class GameView(
                 coinHeight,
                 coinFrames
             )
-
-            if (!isCoinOverlappingObstacle(newCoin.getRect())) {
+            // 장애물 이랑 안 겹치는지 체크
+            if (!isOverlappingObstacle(newCoin.getRect())) {
                 coins.add(newCoin)
                 return
             }
@@ -572,11 +563,14 @@ class GameView(
 
     // 아이템 생성
     private fun spawnEffectItem() {
-        val randomY = Random.nextInt(100, height - 200).toFloat()
-        val randomType = EffectType.entries.toTypedArray().random()
+        var tryCount = 0
+        val maxTry = 10
 
-        effectItems.add(
-            EffectItem(
+        while (tryCount < maxTry) {
+
+            val randomY = Random.nextInt(100, height - 200).toFloat()
+            val randomType = EffectType.entries.toTypedArray().random()
+            val newItem = EffectItem(
                 width.toFloat(),
                 randomY,
                 100f,
@@ -584,7 +578,14 @@ class GameView(
                 effectItemBitmap,
                 randomType
             )
-        )
+            // 장애물 이랑 안 겹치는지 체크
+            if (!isOverlappingObstacle(newItem.getRect())) {
+                effectItems.add(newItem)
+                return
+            }
+
+            tryCount++
+        }
     }
 
     // 게임 초기화
@@ -595,6 +596,8 @@ class GameView(
         velocityY = 0f
 
         obstacles.clear()
+        coins.clear()
+        effectItems.clear()
         spawnTimer = 0
 
         score = 0
@@ -615,13 +618,13 @@ class GameView(
         difficultyLevel = score / 5 + 1
 
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
-        spawnInterval = (baseSpawnInterval / speedMultiplier).toInt()
+        spawnInterval = ((baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40) / speedMultiplier).toInt()
     }
 
-    // 겹치는지 확인
-    private fun isCoinOverlappingObstacle(coinRect: RectF): Boolean {
+    // 장애물이랑 겹치는지 확인
+    private fun isOverlappingObstacle(rect: RectF): Boolean {
         for (obs in obstacles) {
-            if (RectF.intersects(coinRect, obs.getRect())) {
+            if (RectF.intersects(rect, obs.getRect())) {
                 return true
             }
         }
