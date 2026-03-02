@@ -38,24 +38,27 @@ class Coin(
         canvas.drawBitmap(frames[frameIndex], null, rect, null)
     }
 
+    fun getRect(): RectF {
+        return RectF(x, y, x + width, y + height)
+    }
+
     fun isOffScreen(): Boolean {
         return x + width < 0
     }
 
     fun collidesWith(playerX: Float, playerY: Float, playerRadius: Float): Boolean {
-        val coinRect = RectF(x, y, x + width, y + height)
+        // 사각형 영역 (코인 또는 장애물)
+        val rect = RectF(x, y, x + width, y + height)
 
-        val closestX = playerX.coerceIn(coinRect.left, coinRect.right)
-        val closestY = playerY.coerceIn(coinRect.top, coinRect.bottom)
+        // 원의 중심에서 사각형 안의 가장 가까운 점 찾기
+        val closestX = playerX.coerceIn(rect.left, rect.right)
+        val closestY = playerY.coerceIn(rect.top, rect.bottom)
 
+        // 거리 계산
         val dx = playerX - closestX
         val dy = playerY - closestY
 
-        return dx * dx + dy * dy < playerRadius * playerRadius
+        // 거리² <= 반지름² 이면 충돌
+        return dx * dx + dy * dy <= playerRadius * playerRadius
     }
-
-    fun getRect(): RectF {
-        return RectF(x, y, x + width, y + height)
-    }
-
 }

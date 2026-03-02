@@ -446,15 +446,9 @@ class GameView(
     private fun handleSettingsTouch(event: MotionEvent) {
         if (event.action == MotionEvent.ACTION_DOWN) {
             when {
-                modeButtonRect.contains(event.x, event.y) -> {
-                    eventListener.onClickModeToggle()
-                }
-                bgmButtonRect.contains(event.x, event.y) -> {
-                    eventListener.onBgmToggle()
-                }
-                backButtonRect.contains(event.x, event.y) -> {
-                    eventListener.onViewStateToggle(ViewState.MENU)
-                }
+                modeButtonRect.contains(event.x, event.y) -> eventListener.onClickModeToggle()
+                bgmButtonRect.contains(event.x, event.y) -> eventListener.onBgmToggle()
+                backButtonRect.contains(event.x, event.y) -> eventListener.onViewStateToggle(ViewState.MENU)
             }
         }
     }
@@ -615,7 +609,7 @@ class GameView(
 
     // 난이도 조절
     private fun updateDifficulty() {
-        difficultyLevel = score / 5 + 1
+        difficultyLevel = score / 10 + 1
 
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
         spawnInterval = ((baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40) / speedMultiplier).toInt()
