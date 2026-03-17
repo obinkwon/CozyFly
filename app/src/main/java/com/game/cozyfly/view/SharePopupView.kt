@@ -53,7 +53,7 @@ class SharePopupView(context: Context,
     private val popupRect = RectF()
     private val scoreBtnRect = RectF()
     private val scoreTextRect = RectF()
-    private val saveButtonRect = RectF()
+    private val saveBtnRect = RectF()
 
     // 팝업 표시
     fun showPopup() {
@@ -91,7 +91,7 @@ class SharePopupView(context: Context,
                     closePopup()
                 }
                 // 저장 버튼 클릭
-                else if (saveButtonRect.contains(event.x, event.y)) {
+                else if (saveBtnRect.contains(event.x, event.y)) {
                     val renderer = ShareImageRenderer(context)
                     val bitmap = renderer.render(gameConfig.bestScore)
                     saveBitmapToGallery(bitmap)
@@ -128,7 +128,7 @@ class SharePopupView(context: Context,
         canvas.drawBitmap(closeBtn, null, closeBtnRect, null)
 
         // score 버튼 그리기
-        scoreBtnRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.top + 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.MIDDLE_BTN_HEIGHT))
+        scoreBtnRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.top + 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         canvas.drawBitmap(scoreBtn, null, scoreBtnRect, null)
 
         // 점수 텍스트 그리기
@@ -141,8 +141,8 @@ class SharePopupView(context: Context,
         canvas.drawBitmap(playerImg, null, playerRect, null)
 
         // 저장 버튼 그리기
-        saveButtonRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.bottom - 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.MIDDLE_BTN_HEIGHT))
-        canvas.drawBitmap(saveBtn, null, saveButtonRect, null)
+        saveBtnRect.set(ButtonUtil.getButtonSize(width / 2f, popupRect.bottom - 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        canvas.drawBitmap(saveBtn, null, saveBtnRect, null)
     }
 
     // 점수 그리기

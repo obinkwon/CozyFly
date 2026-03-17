@@ -3,12 +3,15 @@ package com.game.cozyfly
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.edit
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.game.cozyfly.compose.ShopScreen
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
@@ -43,12 +46,25 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val sharePopupView = SharePopupView(this, this, gameConfig)
         gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
         gameView.sharePopupView = sharePopupView    // sharePopupView 넘겨주기
+        // 상점 뷰 추가
+        val shopView = ComposeView(this).apply {
+            visibility = View.GONE
+            setContent {
+                ShopScreen(
+                    onClose = {
+                        visibility = View.GONE
+                        onViewStateToggle(ViewState.MENU)
+                    }
+                )
+            }
+        }
 
         // 컨테이너 생성
         val container = FrameLayout(this)
         container.addView(gameView)
         container.addView(settingPopupView)
         container.addView(sharePopupView)
+        container.addView(shopView)
 
         setContentView(container)
         // 배경음 초기화

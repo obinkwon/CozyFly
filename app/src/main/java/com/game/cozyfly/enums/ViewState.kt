@@ -4,5 +4,6 @@ enum class ViewState {
     PLAY,
     SETTINGS,
     MENU,
+    SHOP,
     ;
 }

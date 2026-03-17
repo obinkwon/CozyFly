@@ -59,6 +59,8 @@ class GameView(
     private val settingIconBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting_icon)
     private val restartBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.restart)
     private val shareBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.share)
+    private val shopBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.shop)
+    private val homeBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.home)
     private val coinFrames: Array<Bitmap> = arrayOf(
         BitmapFactory.decodeResource(context.resources, R.drawable.coin1_1),
         BitmapFactory.decodeResource(context.resources, R.drawable.coin1_2),
@@ -71,12 +73,14 @@ class GameView(
     )
     private val modeButtonRect = RectF()
     private val backButtonRect = RectF()
-    private val startButtonRect = RectF()
-    private val settingsButtonRect = RectF()
+    private val startBtnRect = RectF()
+    private val settingsBtnRect = RectF()
     private val bgmButtonRect = RectF()
     private val settingIconBtnRect = RectF()
     private val restartBtnRect = RectF()
     private val shareBtnRect = RectF()
+    private val shopBtnRect = RectF()
+    private val homeBtnRect = RectF()
     var holding = false
 
     // 파리 관련 변수
@@ -338,6 +342,7 @@ class GameView(
             ViewState.MENU -> drawMenu(canvas)
             ViewState.PLAY -> drawGame(canvas)
             ViewState.SETTINGS -> drawSettings(canvas)
+            ViewState.SHOP -> drawSettings(canvas)
         }
     }
 
@@ -363,14 +368,17 @@ class GameView(
 
         // 게임오버 화면 표시
         if (gameConfig.gameState == GameState.GAMEOVER) {
-            val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY - 300f, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
+            val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY - 400f, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
             canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
 
-            restartBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.BIG_BTN_HEIGHT))
+            restartBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
             canvas.drawBitmap(restartBtn, null, restartBtnRect, null)
 
-            shareBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 300f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.BIG_BTN_HEIGHT))
+            shareBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
             canvas.drawBitmap(shareBtn, null, shareBtnRect, null)
+
+            homeBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+            canvas.drawBitmap(homeBtn, null, homeBtnRect, null)
         }
 
         // 플레이 화면 세팅 아이콘 그리기
@@ -388,19 +396,23 @@ class GameView(
     // 메뉴 화면 그리기
     private fun drawMenu(canvas: Canvas) {
         // start 버튼
-        startButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.START_BTN_WIDTH, SizeConstants.START_BTN_HEIGHT))
-        canvas.drawBitmap(startBtn, null, startButtonRect, null)
+        startBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY - 200f, SizeConstants.START_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        canvas.drawBitmap(startBtn, null, startBtnRect, null)
 
         // setting 버튼
-        settingsButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
-        canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
+        settingsBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        canvas.drawBitmap(settingBtn, null, settingsBtnRect, null)
+
+        // shop 버튼
+        shopBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        canvas.drawBitmap(shopBtn, null, shopBtnRect, null)
     }
 
     // 세팅 화면 그리기
     private fun drawSettings(canvas: Canvas) {
         // 세팅 글자
-        settingsButtonRect.set(ButtonUtil.getButtonSize(centerX, 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
-        canvas.drawBitmap(settingBtn, null, settingsButtonRect, null)
+        settingsBtnRect.set(ButtonUtil.getButtonSize(centerX, 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
+        canvas.drawBitmap(settingBtn, null, settingsBtnRect, null)
         // 모드 버튼
         modeButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, gameConfig.clickMode, modeButtonRect)
@@ -425,6 +437,7 @@ class GameView(
             ViewState.MENU -> handleMenuTouch(event)
             ViewState.SETTINGS -> handleSettingsTouch(event)
             ViewState.PLAY -> handleGameplayTouch(event)
+            ViewState.SHOP -> handleGameplayTouch(event)
         }
 
         return true
@@ -433,11 +446,13 @@ class GameView(
     // 메뉴 터치 이벤트
     private fun handleMenuTouch(event: MotionEvent) {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            if (startButtonRect.contains(event.x, event.y)) {
+            if (startBtnRect.contains(event.x, event.y)) {
                 eventListener.onViewStateToggle(ViewState.PLAY)
                 resetGame()   // 기존 플레이어 위치/점수/장애물 초기화
-            } else if (settingsButtonRect.contains(event.x, event.y)) {
+            } else if (settingsBtnRect.contains(event.x, event.y)) {
                 eventListener.onViewStateToggle(ViewState.SETTINGS)
+            } else if (shopBtnRect.contains(event.x, event.y)) {
+                eventListener.onViewStateToggle(ViewState.SHOP)
             }
         }
     }
@@ -490,6 +505,11 @@ class GameView(
                     else if (shareBtnRect.contains(event.x, event.y)) {
                         eventListener.onGameStateToggle(GameState.SHARE) // 공유
                         sharePopupView.showPopup() // 팝업 호출
+                    }
+                    // 홈 버튼 클릭
+                    else if (homeBtnRect.contains(event.x, event.y)) {
+                        eventListener.onGameStateToggle(GameState.READY) // 준비화면 상태
+                        eventListener.onViewStateToggle(ViewState.MENU) // 메뉴 화면
                     }
                 }
             }
