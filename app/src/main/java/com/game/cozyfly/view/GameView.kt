@@ -1,15 +1,18 @@
 package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.RectF
+import android.provider.MediaStore
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.widget.Toast
 import androidx.core.content.edit
 import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
@@ -23,6 +26,7 @@ import com.game.cozyfly.item.Coin
 import com.game.cozyfly.item.EffectItem
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.`object`.Obstacle
+import com.game.cozyfly.ui.share.ShareImageRenderer
 import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
 import kotlin.random.Random
@@ -36,7 +40,6 @@ class GameView(
 
     // 팝업 view 변수
     lateinit var settingPopupView: SettingPopupView
-    lateinit var sharePopupView: SharePopupView
 
     // 쓰레드 변수
     private var gameThread = Thread(this)
@@ -81,6 +84,8 @@ class GameView(
     private val shareBtnRect = RectF()
     private val shopBtnRect = RectF()
     private val homeBtnRect = RectF()
+    private val gameOverTxtRect = RectF()
+    private val coinTxtRect = RectF()
     var holding = false
 
     // 파리 관련 변수
@@ -368,16 +373,16 @@ class GameView(
 
         // 게임오버 화면 표시
         if (gameConfig.gameState == GameState.GAMEOVER) {
-            val gameOverTextRect = ButtonUtil.getButtonSize(centerX, centerY - 400f, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT)
-            canvas.drawBitmap(gameOverText, null, gameOverTextRect, null)
+            gameOverTxtRect.set(ButtonUtil.getButtonSize(centerX, centerY - 350f, SizeConstants.GAMEOVER_BTN_WIDTH, SizeConstants.GAMEOVER_BTN_HEIGHT))
+            canvas.drawBitmap(gameOverText, null, gameOverTxtRect, null)
 
-            restartBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+            restartBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.MIDDLE_BTN_HEIGHT, SizeConstants.MIDDLE_BTN_HEIGHT))
             canvas.drawBitmap(restartBtn, null, restartBtnRect, null)
 
-            shareBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+            shareBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.MIDDLE_BTN_HEIGHT, SizeConstants.MIDDLE_BTN_HEIGHT))
             canvas.drawBitmap(shareBtn, null, shareBtnRect, null)
 
-            homeBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+            homeBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.MIDDLE_BTN_HEIGHT, SizeConstants.MIDDLE_BTN_HEIGHT))
             canvas.drawBitmap(homeBtn, null, homeBtnRect, null)
         }
 
@@ -390,7 +395,10 @@ class GameView(
         // 최고 점수 표시
         CanvasUtil.drawText(canvas, "Best: ${gameConfig.bestScore}", 50f, 200f, TextStyle(40f, Color.DKGRAY))
         // 코인 표시
-        CanvasUtil.drawText(canvas, "Coin: ${gameConfig.coinScore}", 50f, 250f, TextStyle(40f, Color.DKGRAY))
+        coinTxtRect.set(ButtonUtil.getButtonSize(50f, 260f, 50f, 50f))
+        canvas.drawBitmap(coinFrames[0], null, coinTxtRect, null)
+        CanvasUtil.drawText(canvas, "${gameConfig.coinScore}", 150f, 250f, TextStyle(40f, Color.DKGRAY))
+
     }
     
     // 메뉴 화면 그리기
@@ -503,8 +511,11 @@ class GameView(
                     }
                     // 공유 버튼 클릭
                     else if (shareBtnRect.contains(event.x, event.y)) {
-                        eventListener.onGameStateToggle(GameState.SHARE) // 공유
-                        sharePopupView.showPopup() // 팝업 호출
+//                        eventListener.onGameStateToggle(GameState.SHARE) // 공유
+//                        sharePopupView.showPopup() // 팝업 호출
+                        val renderer = ShareImageRenderer(context)
+                        val bitmap = renderer.render(gameConfig.bestScore)
+                        saveBitmapToGallery(bitmap)
                     }
                     // 홈 버튼 클릭
                     else if (homeBtnRect.contains(event.x, event.y)) {
@@ -662,5 +673,28 @@ class GameView(
         activeEffect = null
         speedMultiplier = 1f
         gravityMultiplier = 1f
+    }
+
+    // 화면 캡쳐
+    private fun saveBitmapToGallery(bitmap: Bitmap) {
+        val filename = "share_${System.currentTimeMillis()}.png"
+        val resolver = context.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CozyFly")
+        }
+
+        val imageUri = resolver.insert(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            contentValues
+        )
+
+        imageUri?.let { uri ->
+            resolver.openOutputStream(uri)?.use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            }
+            Toast.makeText(context, "이미지가 저장되었습니다", Toast.LENGTH_SHORT).show()
+        }
     }
 }

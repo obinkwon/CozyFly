@@ -19,7 +19,6 @@ import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.view.GameView
 import com.game.cozyfly.view.SettingPopupView
-import com.game.cozyfly.view.SharePopupView
 
 class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var bgmPlayer: MediaPlayer // bgm 플레이어
@@ -43,9 +42,7 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val gameView = GameView(this, this, gameConfig)
         // 팝업 뷰 추가
         val settingPopupView = SettingPopupView(this, this, gameConfig)
-        val sharePopupView = SharePopupView(this, this, gameConfig)
         gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
-        gameView.sharePopupView = sharePopupView    // sharePopupView 넘겨주기
         // 상점 뷰 추가
         val shopView = ComposeView(this).apply {
             visibility = View.GONE
@@ -63,7 +60,6 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val container = FrameLayout(this)
         container.addView(gameView)
         container.addView(settingPopupView)
-        container.addView(sharePopupView)
         container.addView(shopView)
 
         setContentView(container)
