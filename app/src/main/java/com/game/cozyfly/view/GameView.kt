@@ -57,7 +57,7 @@ class GameView(
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
-    private val settingBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
+    private val settingTxt: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private val gameOverText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.gameover)
     private val settingIconBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting_icon)
     private val restartBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.restart)
@@ -77,7 +77,7 @@ class GameView(
     private val modeButtonRect = RectF()
     private val backButtonRect = RectF()
     private val startBtnRect = RectF()
-    private val settingsBtnRect = RectF()
+    private val settingsTxtRect = RectF()
     private val bgmButtonRect = RectF()
     private val settingIconBtnRect = RectF()
     private val restartBtnRect = RectF()
@@ -197,8 +197,8 @@ class GameView(
 
     // 게임 동작 업데이트
     private fun update() {
-        // 게임플레이 상태 일때만 동작
-        if (gameConfig.gameState != GameState.PLAY) return
+        // 게임화면에서 플레이 상태 일때만 동작
+        if (gameConfig.viewState != ViewState.PLAY || gameConfig.gameState != GameState.PLAY) return
 
         // 홀드 모드일때
         if (gameConfig.clickMode == ClickMode.CLICK_HOLD && holding) {
@@ -323,7 +323,7 @@ class GameView(
     // 배경 업데이트
     private fun updateBackground() {
         // 준비화면 상태이거나 게임플레이 상태일때 동작
-        if (gameConfig.gameState == GameState.READY || gameConfig.gameState == GameState.PLAY) {
+        if (gameConfig.gameState == GameState.PLAY) {
             // 배경 화면 속도
             bgX1 -= bgScrollSpeed
             bgX2 -= bgScrollSpeed
@@ -346,8 +346,7 @@ class GameView(
         when (gameConfig.viewState) {
             ViewState.MENU -> drawMenu(canvas)
             ViewState.PLAY -> drawGame(canvas)
-            ViewState.SETTINGS -> drawSettings(canvas)
-            ViewState.SHOP -> drawSettings(canvas)
+            ViewState.SHOP -> drawShop(canvas)
         }
     }
 
@@ -395,32 +394,32 @@ class GameView(
         // 최고 점수 표시
         CanvasUtil.drawText(canvas, "Best: ${gameConfig.bestScore}", 50f, 200f, TextStyle(40f, Color.DKGRAY))
         // 코인 표시
-        coinTxtRect.set(ButtonUtil.getButtonSize(50f, 260f, 50f, 50f))
-        canvas.drawBitmap(coinFrames[0], null, coinTxtRect, null)
         CanvasUtil.drawText(canvas, "${gameConfig.coinScore}", 150f, 250f, TextStyle(40f, Color.DKGRAY))
+        coinTxtRect.set(ButtonUtil.getButtonSize(80f, 240f, 50f, 50f))
+        canvas.drawBitmap(coinFrames[0], null, coinTxtRect, null)
 
     }
     
     // 메뉴 화면 그리기
     private fun drawMenu(canvas: Canvas) {
         // start 버튼
-        startBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY - 200f, SizeConstants.START_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        startBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY - 100f, SizeConstants.START_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         canvas.drawBitmap(startBtn, null, startBtnRect, null)
 
-        // setting 버튼
-        settingsBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        canvas.drawBitmap(settingBtn, null, settingsBtnRect, null)
-
         // shop 버튼
-        shopBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 200f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        shopBtnRect.set(ButtonUtil.getButtonSize(centerX, centerY + 100f, SizeConstants.MIDDLE_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         canvas.drawBitmap(shopBtn, null, shopBtnRect, null)
+
+        // setting 버튼
+        settingIconBtnRect.set(ButtonUtil.getButtonSize(width - 100f, 150f, SizeConstants.SETTING_ICON_WIDTH, SizeConstants.SETTING_ICON_HEIGHT))
+        canvas.drawBitmap(settingIconBtn, null, settingIconBtnRect, null)
     }
 
-    // 세팅 화면 그리기
-    private fun drawSettings(canvas: Canvas) {
+    // 상점 화면 그리기
+    private fun drawShop(canvas: Canvas) {
         // 세팅 글자
-        settingsBtnRect.set(ButtonUtil.getButtonSize(centerX, 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
-        canvas.drawBitmap(settingBtn, null, settingsBtnRect, null)
+        settingsTxtRect.set(ButtonUtil.getButtonSize(centerX, 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
+        canvas.drawBitmap(settingTxt, null, settingsTxtRect, null)
         // 모드 버튼
         modeButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, gameConfig.clickMode, modeButtonRect)
@@ -443,9 +442,8 @@ class GameView(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (gameConfig.viewState) {
             ViewState.MENU -> handleMenuTouch(event)
-            ViewState.SETTINGS -> handleSettingsTouch(event)
             ViewState.PLAY -> handleGameplayTouch(event)
-            ViewState.SHOP -> handleGameplayTouch(event)
+            ViewState.SHOP -> handleSettingsTouch(event)
         }
 
         return true
@@ -456,9 +454,10 @@ class GameView(
         if (event.action == MotionEvent.ACTION_DOWN) {
             if (startBtnRect.contains(event.x, event.y)) {
                 eventListener.onViewStateToggle(ViewState.PLAY)
-                resetGame()   // 기존 플레이어 위치/점수/장애물 초기화
-            } else if (settingsBtnRect.contains(event.x, event.y)) {
-                eventListener.onViewStateToggle(ViewState.SETTINGS)
+                // 기존 플레이어 위치/점수/장애물 초기화
+                resetGame()
+            } else if (settingIconBtnRect.contains(event.x, event.y)) {
+                settingPopupView.showPopup() // 팝업 호출
             } else if (shopBtnRect.contains(event.x, event.y)) {
                 eventListener.onViewStateToggle(ViewState.SHOP)
             }
@@ -475,7 +474,7 @@ class GameView(
             }
         }
     }
-    
+
     // 플레이 터치 이벤트
     private fun handleGameplayTouch(event: MotionEvent) {
         when (gameConfig.gameState) {
@@ -511,22 +510,19 @@ class GameView(
                     }
                     // 공유 버튼 클릭
                     else if (shareBtnRect.contains(event.x, event.y)) {
-//                        eventListener.onGameStateToggle(GameState.SHARE) // 공유
-//                        sharePopupView.showPopup() // 팝업 호출
                         val renderer = ShareImageRenderer(context)
                         val bitmap = renderer.render(gameConfig.bestScore)
                         saveBitmapToGallery(bitmap)
                     }
                     // 홈 버튼 클릭
                     else if (homeBtnRect.contains(event.x, event.y)) {
-                        eventListener.onGameStateToggle(GameState.READY) // 준비화면 상태
+                        eventListener.onGameStateToggle(GameState.PLAY) // 플레이 상태
                         eventListener.onViewStateToggle(ViewState.MENU) // 메뉴 화면
                     }
                 }
             }
             // 기타
             GameState.PAUSE,
-            GameState.READY,
             GameState.SHARE-> {
                 // 아무 입력도 안 받음
                 holding = false

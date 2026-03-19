@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity(), GameEventListener {
         prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
         val clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.CLICK_TAP.type)) ?: ClickMode.CLICK_TAP
         val bgmState = ClickMode.getMode(prefs.getString("BGM_MODE", ClickMode.BGM_ON.type)) ?: ClickMode.BGM_ON
-        val gameState = GameState.READY
+        val gameState = GameState.PLAY
         val viewState = ViewState.MENU
         val bestScore = prefs.getInt("BEST_SCORE", 0)
         val coinScore = prefs.getInt("COIN_SCORE", 0)
