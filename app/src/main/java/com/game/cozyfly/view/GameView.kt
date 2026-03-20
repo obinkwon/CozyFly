@@ -1,6 +1,7 @@
 package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
@@ -29,6 +30,7 @@ import com.game.cozyfly.`object`.Obstacle
 import com.game.cozyfly.ui.share.ShareImageRenderer
 import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
+import com.google.android.gms.games.PlayGames
 import kotlin.random.Random
 
 @SuppressLint("ViewConstructor")
@@ -296,6 +298,9 @@ class GameView(
                 eventListener.onGameStateToggle(GameState.GAMEOVER)
                 prefs.edit { putInt("BEST_SCORE", gameConfig.bestScore) }
                 prefs.edit { putInt("COIN_SCORE", gameConfig.coinScore) }
+                if (score >= gameConfig.bestScore) {
+                    eventListener.onSubmitScore(score)
+                }
                 break
             }
         }
@@ -692,5 +697,9 @@ class GameView(
             }
             Toast.makeText(context, "이미지가 저장되었습니다", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun signIn(activity: Activity) {
+        PlayGames.getGamesSignInClient(activity).signIn()
     }
 }

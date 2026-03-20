@@ -19,6 +19,7 @@ import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
 
+
 @SuppressLint("ViewConstructor")
 class SettingPopupView(context: Context,
     private val eventListener: GameEventListener,
@@ -34,6 +35,7 @@ class SettingPopupView(context: Context,
     private val popupRect = RectF()
     private val modeButtonRect = RectF()
     private val bgmButtonRect = RectF()
+    private val gmsLoginButtonRect = RectF()
 
     // 팝업 표시
     fun showPopup() {
@@ -80,6 +82,11 @@ class SettingPopupView(context: Context,
                     eventListener.onBgmToggle()
                     invalidate() // 화면 렌더링
                 }
+                // 리더보드 열기 클릭
+                else if (gmsLoginButtonRect.contains(event.x, event.y)) {
+                    // 리더보드 열기
+                    eventListener.showLeaderboard()
+                }
             }
         }
         return true
@@ -122,5 +129,9 @@ class SettingPopupView(context: Context,
         // 배경음 조절 버튼
         bgmButtonRect.set(ButtonUtil.getButtonSize(width / 2f, modeButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
         CanvasUtil.drawButton(canvas, gameConfig.bgmState, bgmButtonRect)
+
+        // 리더보드 열기 버튼
+        gmsLoginButtonRect.set(ButtonUtil.getButtonSize(width / 2f, bgmButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        CanvasUtil.drawButton(canvas, "SHOW LEADERBOARD", gmsLoginButtonRect)
     }
 }

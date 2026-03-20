@@ -12,6 +12,7 @@ import androidx.core.content.edit
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.game.cozyfly.compose.ShopScreen
+import com.game.cozyfly.constants.LeaderBoardConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
@@ -19,15 +20,26 @@ import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.view.GameView
 import com.game.cozyfly.view.SettingPopupView
+import com.google.android.gms.games.GamesSignInClient
+import com.google.android.gms.games.LeaderboardsClient
+import com.google.android.gms.games.PlayGames
+import com.google.android.gms.games.PlayGamesSdk
+
 
 class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var bgmPlayer: MediaPlayer // bgm 플레이어
     private lateinit var prefs: SharedPreferences
     private lateinit var gameConfig: GameConfig // 게임 설정 변수
+    private lateinit var gamesSignInClient: GamesSignInClient // 게임 설정 변수
+    private lateinit var leaderboardsClient: LeaderboardsClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge() // 상태바 숨기기
+        // 구글 리더보드 초기값 설정
+        PlayGamesSdk.initialize(this)
+        gamesSignInClient = PlayGames.getGamesSignInClient(this)
+        leaderboardsClient = PlayGames.getLeaderboardsClient(this)
         // 초기값 설정
         prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
         val clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.CLICK_TAP.type)) ?: ClickMode.CLICK_TAP
@@ -72,6 +84,7 @@ class MainActivity : ComponentActivity(), GameEventListener {
 
     override fun onResume() {
         super.onResume()
+        signInSilently()
         // 배경음악 상태 체크
         if (gameConfig.bgmState == ClickMode.BGM_ON) bgmPlayer.start() else bgmPlayer.pause()
     }
@@ -123,5 +136,49 @@ class MainActivity : ComponentActivity(), GameEventListener {
 
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+    // 자동 로그인 시도하는 함수
+    private fun signInSilently() {
+        gamesSignInClient.isAuthenticated.addOnCompleteListener { isAuthenticatedTask ->
+            val isAuthenticated = isAuthenticatedTask.isSuccessful &&
+                    isAuthenticatedTask.result.isAuthenticated
+            if (isAuthenticated) {
+            } else {
+            }
+        }
+    }
+    // 구글 로그인 하기
+    private fun startSignInIntent() {
+        gamesSignInClient.signIn().addOnCompleteListener { task ->
+            if (task.isSuccessful && task.result.isAuthenticated) {
+                // sign in successful
+            } else {
+                // sign in failed
+            }
+        }
+    }
+    // 리더보드 점수 저장
+    override fun onSubmitScore(score: Int) {
+        gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
+            val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
+            // 구글 로그인 된사람만 리더보드 점수 저장
+            if (isAuthenticated) {
+                leaderboardsClient.submitScore(LeaderBoardConstants.ID, score.toLong())
+            }
+        }
+    }
+    // 리더보드 열기
+    override fun showLeaderboard() {
+        gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
+            val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
+
+            if (isAuthenticated) {
+                leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID)
+                    .addOnSuccessListener { intent -> startActivity(intent) }
+            } else {
+                // 구글 로그인
+                startSignInIntent()
+            }
+        }
     }
 }

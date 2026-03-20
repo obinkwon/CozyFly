@@ -60,4 +60,21 @@ object CanvasUtil {
 
         canvas.drawText(clickMode.desc, centerX, centerY, textPaint)
     }
+
+    fun drawButton(
+        canvas: Canvas,
+        desc: String,
+        rect: RectF
+    ) {
+        // 버튼 배경
+        canvas.drawRoundRect(rect, 25f, 25f, buttonPaint)
+        // 테두리
+        canvas.drawRoundRect(rect, 25f, 25f, buttonBorderPaint)
+
+        // 텍스트 중앙 정렬 계산
+        val centerX = rect.centerX()
+        val centerY = rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2
+
+        canvas.drawText(desc, centerX, centerY, textPaint)
+    }
 }

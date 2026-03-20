@@ -8,4 +8,6 @@ interface GameEventListener {
     fun onClickModeToggle()
     fun onGameStateToggle(gameState: GameState)
     fun onViewStateToggle(viewState: ViewState)
+    fun onSubmitScore(score: Int)
+    fun showLeaderboard()
 }
