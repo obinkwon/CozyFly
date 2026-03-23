@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.edit
 import androidx.core.view.WindowInsetsCompat
@@ -140,11 +141,10 @@ class MainActivity : ComponentActivity(), GameEventListener {
     // 자동 로그인 시도하는 함수
     private fun signInSilently() {
         gamesSignInClient.isAuthenticated.addOnCompleteListener { isAuthenticatedTask ->
-            val isAuthenticated = isAuthenticatedTask.isSuccessful &&
-                    isAuthenticatedTask.result.isAuthenticated
-            if (isAuthenticated) {
-            } else {
-            }
+            val isAuthenticated = isAuthenticatedTask.isSuccessful && isAuthenticatedTask.result.isAuthenticated
+//            if (isAuthenticated) {
+//            } else {
+//            }
         }
     }
     // 구글 로그인 하기
@@ -169,12 +169,19 @@ class MainActivity : ComponentActivity(), GameEventListener {
     }
     // 리더보드 열기
     override fun showLeaderboard() {
+        val leaderboardLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                // 필요하면 결과 처리
+            }
+        }
         gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
             val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
 
             if (isAuthenticated) {
                 leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID)
-                    .addOnSuccessListener { intent -> startActivity(intent) }
+                    .addOnSuccessListener { intent ->
+                        leaderboardLauncher.launch(intent)
+                    }
             } else {
                 // 구글 로그인
                 startSignInIntent()
