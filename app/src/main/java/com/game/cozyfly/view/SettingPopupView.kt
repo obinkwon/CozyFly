@@ -9,6 +9,8 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
+import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.withClip
 import com.game.cozyfly.R
@@ -27,6 +29,7 @@ class SettingPopupView(context: Context,
 ) : View(context) {
 
     private var showing = false
+    val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
     private val background = BitmapFactory.decodeResource(resources, R.drawable.popup_background)
     private val settingBtn = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private val closeBtn = BitmapFactory.decodeResource(resources, R.drawable.close)
@@ -36,6 +39,7 @@ class SettingPopupView(context: Context,
     private val modeButtonRect = RectF()
     private val bgmButtonRect = RectF()
     private val gmsLoginButtonRect = RectF()
+    private val gmsScroeButtonRect = RectF()
 
     // 팝업 표시
     fun showPopup() {
@@ -87,6 +91,17 @@ class SettingPopupView(context: Context,
                     // 리더보드 열기
                     eventListener.showLeaderboard()
                 }
+                // 리더보드 점수 불러오기 클릭
+                else if (gmsScroeButtonRect.contains(event.x, event.y)) {
+                    // 리더보드 열기
+                    eventListener.getLeaderboardScore() { score ->
+                        // 사용
+                        val finalScore = score.coerceAtLeast(0)
+                        prefs.edit { putInt("BEST_SCORE", finalScore) }
+                        gameConfig.bestScore = finalScore
+                        Toast.makeText(context, "점수를 불러왔습니다", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
         return true
@@ -132,6 +147,10 @@ class SettingPopupView(context: Context,
 
         // 리더보드 열기 버튼
         gmsLoginButtonRect.set(ButtonUtil.getButtonSize(width / 2f, bgmButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, "SHOW LEADERBOARD", gmsLoginButtonRect)
+        CanvasUtil.drawButton(canvas, "LEADERBOARD", gmsLoginButtonRect)
+
+        // 리더보드 점수 불러오기 버튼
+        gmsScroeButtonRect.set(ButtonUtil.getButtonSize(width / 2f, gmsLoginButtonRect.top + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        CanvasUtil.drawButton(canvas, "LOAD SCORE", gmsScroeButtonRect)
     }
 }

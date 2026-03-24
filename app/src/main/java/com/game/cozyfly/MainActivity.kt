@@ -3,11 +3,11 @@ package com.game.cozyfly
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.edit
 import androidx.core.view.WindowInsetsCompat
@@ -22,9 +22,9 @@ import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.view.GameView
 import com.game.cozyfly.view.SettingPopupView
 import com.google.android.gms.games.GamesSignInClient
-import com.google.android.gms.games.LeaderboardsClient
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
+import com.google.android.gms.games.leaderboard.LeaderboardVariant
 
 
 class MainActivity : ComponentActivity(), GameEventListener {
@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var prefs: SharedPreferences
     private lateinit var gameConfig: GameConfig // 게임 설정 변수
     private lateinit var gamesSignInClient: GamesSignInClient // 게임 설정 변수
-    private lateinit var leaderboardsClient: LeaderboardsClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +39,6 @@ class MainActivity : ComponentActivity(), GameEventListener {
         // 구글 리더보드 초기값 설정
         PlayGamesSdk.initialize(this)
         gamesSignInClient = PlayGames.getGamesSignInClient(this)
-        leaderboardsClient = PlayGames.getLeaderboardsClient(this)
         // 초기값 설정
         prefs = getSharedPreferences("game_prefs", MODE_PRIVATE)
         val clickMode = ClickMode.getMode(prefs.getString("CLICK_MODE", ClickMode.CLICK_TAP.type)) ?: ClickMode.CLICK_TAP
@@ -140,20 +138,16 @@ class MainActivity : ComponentActivity(), GameEventListener {
     }
     // 자동 로그인 시도하는 함수
     private fun signInSilently() {
-        gamesSignInClient.isAuthenticated.addOnCompleteListener { isAuthenticatedTask ->
-            val isAuthenticated = isAuthenticatedTask.isSuccessful && isAuthenticatedTask.result.isAuthenticated
-//            if (isAuthenticated) {
-//            } else {
-//            }
-        }
+        gamesSignInClient.signIn()
     }
     // 구글 로그인 하기
-    private fun startSignInIntent() {
+    private fun startSignInIntent(onSuccess: () -> Unit) {
         gamesSignInClient.signIn().addOnCompleteListener { task ->
             if (task.isSuccessful && task.result.isAuthenticated) {
-                // sign in successful
+                Log.d("Login", "success")
+                onSuccess() // ✅ 여기 핵심
             } else {
-                // sign in failed
+                Log.e("Login", "fail", task.exception)
             }
         }
     }
@@ -163,29 +157,77 @@ class MainActivity : ComponentActivity(), GameEventListener {
             val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
             // 구글 로그인 된사람만 리더보드 점수 저장
             if (isAuthenticated) {
+                val leaderboardsClient = PlayGames.getLeaderboardsClient(this)
                 leaderboardsClient.submitScore(LeaderBoardConstants.ID, score.toLong())
             }
         }
     }
     // 리더보드 열기
     override fun showLeaderboard() {
-        val leaderboardLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                // 필요하면 결과 처리
+        gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
+            val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
+            val leaderboardsClient = PlayGames.getLeaderboardsClient(this)
+            if (isAuthenticated) {
+                leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID).addOnSuccessListener { intent -> startActivityForResult(intent, 1001) }
+            } else {
+                // 구글 로그인
+                startSignInIntent {
+                    // 로그인 완료 후 다시 호출
+                    leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID).addOnSuccessListener { intent -> startActivityForResult(intent, 1001) }
+                }
             }
         }
+    }
+    // 리더보드 점수 가져오기
+    override fun getLeaderboardScore(callback: (Int) -> Unit) {
         gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
             val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
 
             if (isAuthenticated) {
-                leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID)
-                    .addOnSuccessListener { intent ->
-                        leaderboardLauncher.launch(intent)
-                    }
+                loadScore(callback)
             } else {
-                // 구글 로그인
-                startSignInIntent()
+                startSignInIntent {
+                    // 로그인 완료 후 다시 호출
+                    loadScore(callback)
+                }
             }
         }
+    }
+    // 점수 불러오기
+    private fun loadScore(callback: (score: Int) -> Unit, retry: Int = 0) {
+        val leaderboardsClient = PlayGames.getLeaderboardsClient(this)
+
+        leaderboardsClient.loadCurrentPlayerLeaderboardScore(
+            LeaderBoardConstants.ID,
+            LeaderboardVariant.TIME_SPAN_ALL_TIME,
+            LeaderboardVariant.COLLECTION_PUBLIC
+        )
+            .addOnSuccessListener { result ->
+                val scoreData = result.get()
+
+                if (scoreData != null) {
+                    val score = scoreData.rawScore.toInt()
+                    Log.d("Leaderboard", "success score=$score")
+
+                    callback(score)
+                } else {
+                    Log.d("Leaderboard", "scoreData null")
+                    callback(0)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("Leaderboard", "fail", e)
+
+                // 🔥 핵심: reconnect + retry
+                if (retry < 2) {
+                    Log.d("Leaderboard", "retry... $retry")
+
+                    gamesSignInClient.signIn().addOnCompleteListener {
+                        loadScore(callback, retry + 1)
+                    }
+                } else {
+                    callback(0)
+                }
+            }
     }
 }

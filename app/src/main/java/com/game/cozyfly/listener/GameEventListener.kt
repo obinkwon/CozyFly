@@ -10,4 +10,5 @@ interface GameEventListener {
     fun onViewStateToggle(viewState: ViewState)
     fun onSubmitScore(score: Int)
     fun showLeaderboard()
+    fun getLeaderboardScore(callback: (Int) -> Unit)
 }
