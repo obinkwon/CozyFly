@@ -144,8 +144,7 @@ class MainActivity : ComponentActivity(), GameEventListener {
     private fun startSignInIntent(onSuccess: () -> Unit) {
         gamesSignInClient.signIn().addOnCompleteListener { task ->
             if (task.isSuccessful && task.result.isAuthenticated) {
-                Log.d("Login", "success")
-                onSuccess() // ✅ 여기 핵심
+                onSuccess()
             } else {
                 Log.e("Login", "fail", task.exception)
             }
@@ -207,21 +206,13 @@ class MainActivity : ComponentActivity(), GameEventListener {
 
                 if (scoreData != null) {
                     val score = scoreData.rawScore.toInt()
-                    Log.d("Leaderboard", "success score=$score")
-
                     callback(score)
                 } else {
-                    Log.d("Leaderboard", "scoreData null")
                     callback(0)
                 }
             }
             .addOnFailureListener { e ->
-                Log.e("Leaderboard", "fail", e)
-
-                // 🔥 핵심: reconnect + retry
                 if (retry < 2) {
-                    Log.d("Leaderboard", "retry... $retry")
-
                     gamesSignInClient.signIn().addOnCompleteListener {
                         loadScore(callback, retry + 1)
                     }
