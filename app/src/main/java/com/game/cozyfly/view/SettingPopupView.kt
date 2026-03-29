@@ -97,9 +97,15 @@ class SettingPopupView(context: Context,
                     eventListener.getLeaderboardScore() { score ->
                         // 사용
                         val finalScore = score.coerceAtLeast(0)
-                        prefs.edit { putInt("BEST_SCORE", finalScore) }
-                        gameConfig.bestScore = finalScore
-                        Toast.makeText(context, "점수를 불러왔습니다", Toast.LENGTH_SHORT).show()
+                        if(finalScore > 0){
+                            if(gameConfig.bestScore < finalScore){
+                                prefs.edit { putInt("BEST_SCORE", finalScore) }
+                                gameConfig.bestScore = finalScore
+                            }
+                            Toast.makeText(context, "점수를 불러 왔습니다", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "불러올 점수가 없습니다", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
