@@ -24,39 +24,32 @@ class ShopView(
 
     // 화면 관련 변수
     private var showing = false
-    private var centerX = 0f // 중앙 X좌표 값
-    private var centerY = 0f // 중앙 Y좌표 값
     private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.shop_background)
+
     private val backBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.back)
     private val backBtnRect = RectF()
 
     // 화면 표시
     fun showView() {
         showing = true
-        eventListener.onViewStateToggle(ViewState.SHOP)
         invalidate() // 화면 렌더링
     }
 
     // 화면 숨기기
-    private fun hideView() {
+    fun hideView() {
         showing = false
-        eventListener.onViewStateToggle(ViewState.MENU) // 메뉴 화면 전환
+        eventListener.onViewStateToggle(ViewState.MENU) // 메뉴 화면 표시
         invalidate() // 화면 렌더링
     }
 
     // 팝업 그리기
     @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
-        if (!showing) return
+        if (!showing || gameConfig.viewState != ViewState.SHOP) return
 
         // 배경 화면 그리기
         drawBackground(canvas)
-        // 화면 상태별로 실행
-        when (gameConfig.viewState) {
-            ViewState.MENU -> {}
-            ViewState.PLAY -> {}
-            ViewState.SHOP -> drawShop(canvas)
-        }
+        drawShop(canvas)
     }
 
     // 상점 화면 그리기
@@ -68,30 +61,17 @@ class ShopView(
 
     // 배경 화면 그리기
     private fun drawBackground(canvas: Canvas) {
-        val scale = maxOf(
-            width.toFloat() / background.width,
-            height.toFloat() / background.height
-        )
-
-        val scaledWidth = background.width * scale
-        val scaledHeight = background.height * scale
-
-        val left = (width - scaledWidth) / 2
-        val top = (height - scaledHeight) / 2
-
-        val backgroundRect = RectF(left, top, left + scaledWidth, top + scaledHeight)
+        val backgroundRect = RectF(0f, 0f, width.toFloat(), height.toFloat())
         canvas.drawBitmap(background, null, backgroundRect, null)
     }
 
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!showing || event.action != MotionEvent.ACTION_DOWN) return false
+        if (!showing || gameConfig.viewState != ViewState.SHOP || event.action != MotionEvent.ACTION_DOWN) return false
 
-        when (gameConfig.viewState) {
-            ViewState.MENU -> {}
-            ViewState.PLAY -> {}
-            ViewState.SHOP -> handleShopTouch(event)
+        if(gameConfig.viewState == ViewState.SHOP){
+            handleShopTouch(event)
         }
 
         return true

@@ -41,7 +41,6 @@ class GameView(
 
     // view 변수
     lateinit var settingPopupView: SettingPopupView
-    lateinit var shopView: ShopView
 
     // 쓰레드 변수
     private var gameThread = Thread(this)
@@ -352,13 +351,15 @@ class GameView(
 
     // 화면 상태별로 캔버스에 요소 그리기
     private fun drawCanvas(canvas: Canvas) {
-        // 배경 화면 그리기
-        drawBackground(canvas)
+        if(gameConfig.viewState != ViewState.SHOP) {
+            // 배경 화면 그리기
+            drawBackground(canvas)
+        }
         // 화면 상태별로 실행
-        when (gameConfig.viewState) {
-            ViewState.MENU -> drawMenu(canvas)
-            ViewState.PLAY -> drawGame(canvas)
-            ViewState.SHOP -> {}
+        if(gameConfig.viewState == ViewState.MENU) {
+            drawMenu(canvas)
+        } else if(gameConfig.viewState == ViewState.PLAY) {
+            drawGame(canvas)
         }
     }
 
@@ -455,7 +456,7 @@ class GameView(
             } else if (settingIconBtnRect.contains(event.x, event.y)) {
                 settingPopupView.showPopup() // 팝업 호출
             } else if (shopBtnRect.contains(event.x, event.y)) {
-                shopView.showView() // 상점 화면 표시
+                eventListener.onViewStateToggle(ViewState.SHOP) // 상점 화면 표시
             }
         }
     }

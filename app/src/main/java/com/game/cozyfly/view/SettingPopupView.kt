@@ -72,42 +72,35 @@ class SettingPopupView(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!showing || event.action != MotionEvent.ACTION_DOWN) return false
 
-        when (event.action) {
-            MotionEvent.ACTION_DOWN -> {
-                // 닫기 버튼 클릭
-                if (closeBtnRect.contains(event.x, event.y)) {
-                    closePopup()
-                }
-                // 모드 버튼 클릭
-                else if (modeButtonRect.contains(event.x, event.y)) {
-                    eventListener.onClickModeToggle()
-                    invalidate() // 화면 렌더링
-                }
-                // BGM 버튼 클릭
-                else if (bgmButtonRect.contains(event.x, event.y)) {
-                    eventListener.onBgmToggle()
-                    invalidate() // 화면 렌더링
-                }
-                // 리더보드 열기 클릭
-                else if (gmsLoginButtonRect.contains(event.x, event.y)) {
-                    // 리더보드 열기
-                    eventListener.showLeaderboard()
-                }
-                // 리더보드 점수 불러오기 클릭
-                else if (gmsScroeButtonRect.contains(event.x, event.y)) {
-                    // 리더보드 열기
-                    eventListener.getLeaderboardScore() { score ->
-                        // 사용
-                        val finalScore = score.coerceAtLeast(0)
-                        if(finalScore > 0){
-                            if(gameConfig.bestScore < finalScore){
-                                prefs.edit { putInt("BEST_SCORE", finalScore) }
-                                gameConfig.bestScore = finalScore
-                            }
-                            Toast.makeText(context, "점수를 불러 왔습니다", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "불러올 점수가 없습니다", Toast.LENGTH_SHORT).show()
+        when {
+            // 닫기 버튼 클릭
+            closeBtnRect.contains(event.x, event.y) -> closePopup()
+            // 모드 버튼 클릭
+            modeButtonRect.contains(event.x, event.y) -> {
+                eventListener.onClickModeToggle()
+                invalidate() // 화면 렌더링
+            }
+            // BGM 버튼 클릭
+            bgmButtonRect.contains(event.x, event.y) -> {
+                eventListener.onBgmToggle()
+                invalidate() // 화면 렌더링
+            }
+            // 리더보드 열기 클릭
+            gmsLoginButtonRect.contains(event.x, event.y) -> eventListener.showLeaderboard()
+            // 리더보드 점수 불러오기 클릭
+            gmsScroeButtonRect.contains(event.x, event.y) -> {
+                // 리더보드 열기
+                eventListener.getLeaderboardScore() { score ->
+                    // 사용
+                    val finalScore = score.coerceAtLeast(0)
+                    if(finalScore > 0){
+                        if(gameConfig.bestScore < finalScore){
+                            prefs.edit { putInt("BEST_SCORE", finalScore) }
+                            gameConfig.bestScore = finalScore
                         }
+                        Toast.makeText(context, "점수를 불러 왔습니다", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "불러올 점수가 없습니다", Toast.LENGTH_SHORT).show()
                     }
                 }
             }

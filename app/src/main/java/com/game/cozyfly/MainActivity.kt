@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var prefs: SharedPreferences
     private lateinit var gameConfig: GameConfig // 게임 설정 변수
     private lateinit var gamesSignInClient: GamesSignInClient // 게임 설정 변수
+    private lateinit var shopView: ShopView // 상점 View 변수
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,9 +53,8 @@ class MainActivity : ComponentActivity(), GameEventListener {
         // 팝업 뷰 추가
         val settingPopupView = SettingPopupView(this, this, gameConfig)
         // 상점 뷰 추가
-        val shopView = ShopView(this, this, gameConfig)
+        shopView = ShopView(this, this, gameConfig)
         gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
-        gameView.shopView = shopView   // shopView 넘겨주기
 
         // 컨테이너 생성
         val container = FrameLayout(this)
@@ -112,6 +112,10 @@ class MainActivity : ComponentActivity(), GameEventListener {
     // view 상태 조절 토글
     override fun onViewStateToggle(viewState: ViewState) {
         gameConfig.viewState = viewState
+        when (viewState) {
+            ViewState.SHOP -> shopView.showView()
+            else -> {}
+        }
     }
     // 현재 앱 창이 포커스를 얻거나 잃을 때 호출
     override fun onWindowFocusChanged(hasFocus: Boolean) {
