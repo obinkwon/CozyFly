@@ -4,7 +4,6 @@ import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
@@ -31,9 +30,6 @@ class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var prefs: SharedPreferences
     private lateinit var gameConfig: GameConfig // 게임 설정 변수
     private lateinit var gamesSignInClient: GamesSignInClient // 게임 설정 변수
-    private lateinit var gameView: GameView // 게임 view
-    private lateinit var shopView: ShopView // 상점 view
-    private lateinit var container: FrameLayout // 컨테이너
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,19 +48,19 @@ class MainActivity : ComponentActivity(), GameEventListener {
         gameConfig = GameConfig(bgmState, clickMode, gameState, viewState, bestScore, coinScore)
 
         // 게임 뷰 추가
-        gameView = GameView(this, this, gameConfig)
+        val gameView = GameView(this, this, gameConfig)
         // 팝업 뷰 추가
         val settingPopupView = SettingPopupView(this, this, gameConfig)
-        gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
         // 상점 뷰 추가
-        shopView = ShopView(this, this, gameConfig)
+        val shopView = ShopView(this, this, gameConfig)
+        gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
+        gameView.shopView = shopView   // shopView 넘겨주기
 
         // 컨테이너 생성
-        container = FrameLayout(this)
-        container.addView(shopView)
+        val container = FrameLayout(this)
         container.addView(gameView)
         container.addView(settingPopupView)
-        shopView.visibility = View.VISIBLE
+        container.addView(shopView)
 
         setContentView(container)
         // 배경음 초기화
@@ -116,27 +112,6 @@ class MainActivity : ComponentActivity(), GameEventListener {
     // view 상태 조절 토글
     override fun onViewStateToggle(viewState: ViewState) {
         gameConfig.viewState = viewState
-
-        Log.e("viewState", "viewState ::: $viewState")
-        when (viewState) {
-            ViewState.SHOP -> {
-                // 정지
-                gameView.visibility = View.GONE
-                gameView.pause()
-                // 시작
-                shopView.visibility = View.VISIBLE
-                shopView.play()
-            }
-            ViewState.MENU -> {
-                // 정지
-                shopView.visibility = View.GONE
-                shopView.pause()
-                // 시작
-                gameView.visibility = View.VISIBLE
-                gameView.play()
-            }
-            else -> {}
-        }
     }
     // 현재 앱 창이 포커스를 얻거나 잃을 때 호출
     override fun onWindowFocusChanged(hasFocus: Boolean) {

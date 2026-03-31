@@ -39,8 +39,9 @@ class GameView(
     private val gameConfig: GameConfig,
 ) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
 
-    // 팝업 view 변수
+    // view 변수
     lateinit var settingPopupView: SettingPopupView
+    lateinit var shopView: ShopView
 
     // 쓰레드 변수
     private var gameThread = Thread(this)
@@ -454,7 +455,7 @@ class GameView(
             } else if (settingIconBtnRect.contains(event.x, event.y)) {
                 settingPopupView.showPopup() // 팝업 호출
             } else if (shopBtnRect.contains(event.x, event.y)) {
-                eventListener.onViewStateToggle(ViewState.SHOP)
+                shopView.showView() // 상점 화면 표시
             }
         }
     }

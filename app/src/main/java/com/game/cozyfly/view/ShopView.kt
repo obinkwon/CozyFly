@@ -7,8 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.RectF
 import android.view.MotionEvent
-import android.view.SurfaceHolder
-import android.view.SurfaceView
+import android.view.View
 import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
@@ -21,90 +20,35 @@ class ShopView(
     context: Context,
     private val eventListener: GameEventListener,
     private val gameConfig: GameConfig,
-) : SurfaceView(context), Runnable, SurfaceHolder.Callback {
+) : View(context) {
 
-    // 쓰레드 변수
-    private var shopThread = Thread(this)
-    private var running = false
-
-    // 배경 관련 변수
-    private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.shop_background)
-
-    // 게임 관련 변수
+    // 화면 관련 변수
+    private var showing = false
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
+    private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.shop_background)
     private val backBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.back)
     private val backBtnRect = RectF()
 
-    // 초기 설정
-    init {
-        holder.addCallback(this)
+    // 화면 표시
+    fun showView() {
+        showing = true
+        eventListener.onViewStateToggle(ViewState.SHOP)
+        invalidate() // 화면 렌더링
     }
 
-    // surfaceView 변경
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        // 필요 없으면 비워둬도 OK
+    // 화면 숨기기
+    private fun hideView() {
+        showing = false
+        eventListener.onViewStateToggle(ViewState.MENU) // 메뉴 화면 전환
+        invalidate() // 화면 렌더링
     }
 
-    // surfaceView 생성
-    override fun surfaceCreated(holder: SurfaceHolder) {
-        play()
-    }
+    // 팝업 그리기
+    @SuppressLint("DrawAllocation")
+    override fun onDraw(canvas: Canvas) {
+        if (!showing) return
 
-    // surfaceView 제거
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
-        pause()
-    }
-
-    fun pause() {
-        running = false
-        try {
-            shopThread.join()
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-        }
-    }
-
-    fun play() {
-        if (running) return
-
-        // 중앙 위치 계산
-        centerX = width / 2f
-        centerY = height / 2f
-        // 쓰레드 실행
-        running = true
-        shopThread = Thread(this)
-        shopThread.start()
-    }
-
-    // 실행
-    override fun run() {
-        while (running) {
-            if (!holder.surface.isValid) continue
-
-            var canvas: Canvas? = null
-            try {
-                canvas = holder.lockCanvas()
-                synchronized(holder) {
-                    update() // 게임 동작 업데이트
-                    drawCanvas(canvas) // canvas를 전달
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                if (canvas != null) {
-                    holder.unlockCanvasAndPost(canvas)
-                }
-            }
-        }
-    }
-
-    // 상점 동작 업데이트
-    private fun update() {
-    }
-
-    // 화면 상태별로 캔버스에 요소 그리기
-    private fun drawCanvas(canvas: Canvas) {
         // 배경 화면 그리기
         drawBackground(canvas)
         // 화면 상태별로 실행
@@ -142,6 +86,8 @@ class ShopView(
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!showing || event.action != MotionEvent.ACTION_DOWN) return false
+
         when (gameConfig.viewState) {
             ViewState.MENU -> {}
             ViewState.PLAY -> {}
@@ -155,7 +101,7 @@ class ShopView(
     private fun handleShopTouch(event: MotionEvent) {
         if (event.action == MotionEvent.ACTION_DOWN) {
             when {
-                backBtnRect.contains(event.x, event.y) -> eventListener.onViewStateToggle(ViewState.MENU)
+                backBtnRect.contains(event.x, event.y) -> hideView()
             }
         }
     }
