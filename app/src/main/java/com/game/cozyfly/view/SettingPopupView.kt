@@ -23,10 +23,7 @@ import com.game.cozyfly.util.CanvasUtil
 
 
 @SuppressLint("ViewConstructor")
-class SettingPopupView(context: Context,
-    private val eventListener: GameEventListener,
-    private val gameConfig: GameConfig,
-) : View(context) {
+class SettingPopupView(context: Context, val eventListener: GameEventListener, val gameConfig: GameConfig) : View(context) {
 
     private var showing = false
     val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)

@@ -8,11 +8,9 @@ import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.edit
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.game.cozyfly.compose.ShopScreen
 import com.game.cozyfly.constants.LeaderBoardConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.ClickMode
@@ -21,6 +19,7 @@ import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.view.GameView
 import com.game.cozyfly.view.SettingPopupView
+import com.game.cozyfly.view.ShopView
 import com.google.android.gms.games.GamesSignInClient
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
@@ -32,6 +31,9 @@ class MainActivity : ComponentActivity(), GameEventListener {
     private lateinit var prefs: SharedPreferences
     private lateinit var gameConfig: GameConfig // 게임 설정 변수
     private lateinit var gamesSignInClient: GamesSignInClient // 게임 설정 변수
+    private lateinit var gameView: GameView // 게임 view
+    private lateinit var shopView: ShopView // 상점 view
+    private lateinit var container: FrameLayout // 컨테이너
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,28 +52,19 @@ class MainActivity : ComponentActivity(), GameEventListener {
         gameConfig = GameConfig(bgmState, clickMode, gameState, viewState, bestScore, coinScore)
 
         // 게임 뷰 추가
-        val gameView = GameView(this, this, gameConfig)
+        gameView = GameView(this, this, gameConfig)
         // 팝업 뷰 추가
         val settingPopupView = SettingPopupView(this, this, gameConfig)
         gameView.settingPopupView = settingPopupView   // settingPopupView 넘겨주기
         // 상점 뷰 추가
-        val shopView = ComposeView(this).apply {
-            visibility = View.GONE
-            setContent {
-                ShopScreen(
-                    onClose = {
-                        visibility = View.GONE
-                        onViewStateToggle(ViewState.MENU)
-                    }
-                )
-            }
-        }
+        shopView = ShopView(this, this, gameConfig)
 
         // 컨테이너 생성
-        val container = FrameLayout(this)
+        container = FrameLayout(this)
+        container.addView(shopView)
         container.addView(gameView)
         container.addView(settingPopupView)
-        container.addView(shopView)
+        shopView.visibility = View.VISIBLE
 
         setContentView(container)
         // 배경음 초기화
@@ -83,7 +76,7 @@ class MainActivity : ComponentActivity(), GameEventListener {
 
     override fun onResume() {
         super.onResume()
-        signInSilently()
+        autoGameSignIn {}
         // 배경음악 상태 체크
         if (gameConfig.bgmState == ClickMode.BGM_ON) bgmPlayer.start() else bgmPlayer.pause()
     }
@@ -123,31 +116,49 @@ class MainActivity : ComponentActivity(), GameEventListener {
     // view 상태 조절 토글
     override fun onViewStateToggle(viewState: ViewState) {
         gameConfig.viewState = viewState
+
+        Log.e("viewState", "viewState ::: $viewState")
+        when (viewState) {
+            ViewState.SHOP -> {
+                // 정지
+                gameView.visibility = View.GONE
+                gameView.pause()
+                // 시작
+                shopView.visibility = View.VISIBLE
+                shopView.play()
+            }
+            ViewState.MENU -> {
+                // 정지
+                shopView.visibility = View.GONE
+                shopView.pause()
+                // 시작
+                gameView.visibility = View.VISIBLE
+                gameView.play()
+            }
+            else -> {}
+        }
     }
     // 현재 앱 창이 포커스를 얻거나 잃을 때 호출
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemBars()
-    }
-    // 상태바 숨기기
-    private fun hideSystemBars() {
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        if (hasFocus) {
+            // 상태바 숨기기
+            val controller = WindowInsetsControllerCompat(window, window.decorView)
 
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
     // 자동 로그인 시도하는 함수
-    private fun signInSilently() {
-        gamesSignInClient.signIn()
-    }
-    // 구글 로그인 하기
-    private fun startSignInIntent(onSuccess: () -> Unit) {
+    private fun autoGameSignIn(onSuccess: () -> Unit) {
         gamesSignInClient.signIn().addOnCompleteListener { task ->
             if (task.isSuccessful && task.result.isAuthenticated) {
                 onSuccess()
             } else {
                 Log.e("Login", "fail", task.exception)
             }
+        }.addOnFailureListener {
+            Log.e("PlayGames", "autoGameSignIn 실패", it)
         }
     }
     // 리더보드 점수 저장
@@ -159,6 +170,8 @@ class MainActivity : ComponentActivity(), GameEventListener {
                 val leaderboardsClient = PlayGames.getLeaderboardsClient(this)
                 leaderboardsClient.submitScore(LeaderBoardConstants.ID, score.toLong())
             }
+        }.addOnFailureListener {
+            Log.e("PlayGames", "onSubmitScore 실패", it)
         }
     }
     // 리더보드 열기
@@ -170,26 +183,29 @@ class MainActivity : ComponentActivity(), GameEventListener {
                 leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID).addOnSuccessListener { intent -> startActivityForResult(intent, 1001) }
             } else {
                 // 구글 로그인
-                startSignInIntent {
+                autoGameSignIn {
                     // 로그인 완료 후 다시 호출
                     leaderboardsClient.getLeaderboardIntent(LeaderBoardConstants.ID).addOnSuccessListener { intent -> startActivityForResult(intent, 1001) }
                 }
             }
+        }.addOnFailureListener {
+            Log.e("PlayGames", "showLeaderboard 실패", it)
         }
     }
     // 리더보드 점수 가져오기
     override fun getLeaderboardScore(callback: (Int) -> Unit) {
         gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
             val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
-
             if (isAuthenticated) {
                 loadScore(callback)
             } else {
-                startSignInIntent {
+                autoGameSignIn {
                     // 로그인 완료 후 다시 호출
                     loadScore(callback)
                 }
             }
+        }.addOnFailureListener {
+            Log.e("PlayGames", "getLeaderboardScore 실패", it)
         }
     }
     // 점수 불러오기
@@ -215,6 +231,8 @@ class MainActivity : ComponentActivity(), GameEventListener {
                 if (retry < 2) {
                     gamesSignInClient.signIn().addOnCompleteListener {
                         loadScore(callback, retry + 1)
+                    }.addOnFailureListener {
+                        Log.e("PlayGames", "loadScore 실패", it)
                     }
                 } else {
                     callback(0)

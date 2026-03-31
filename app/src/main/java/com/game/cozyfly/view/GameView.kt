@@ -1,7 +1,6 @@
 package com.game.cozyfly.view
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
@@ -10,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.RectF
 import android.provider.MediaStore
+import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -30,7 +30,6 @@ import com.game.cozyfly.`object`.Obstacle
 import com.game.cozyfly.ui.share.ShareImageRenderer
 import com.game.cozyfly.util.ButtonUtil
 import com.game.cozyfly.util.CanvasUtil
-import com.google.android.gms.games.PlayGames
 import kotlin.random.Random
 
 @SuppressLint("ViewConstructor")
@@ -59,7 +58,6 @@ class GameView(
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
-    private val settingTxt: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting)
     private val gameOverText: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.gameover)
     private val settingIconBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.setting_icon)
     private val restartBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.restart)
@@ -76,11 +74,7 @@ class GameView(
         BitmapFactory.decodeResource(context.resources, R.drawable.coin1_7),
         BitmapFactory.decodeResource(context.resources, R.drawable.coin1_8),
     )
-    private val modeButtonRect = RectF()
-    private val backButtonRect = RectF()
     private val startBtnRect = RectF()
-    private val settingsTxtRect = RectF()
-    private val bgmButtonRect = RectF()
     private val settingIconBtnRect = RectF()
     private val restartBtnRect = RectF()
     private val shareBtnRect = RectF()
@@ -140,8 +134,35 @@ class GameView(
         holder.addCallback(this)
     }
 
+    // surfaceView 변경
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        // 필요 없으면 비워둬도 OK
+    }
+
     // surfaceView 생성
     override fun surfaceCreated(holder: SurfaceHolder) {
+        play()
+    }
+
+    // surfaceView 제거
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        pause()
+    }
+    // 정지
+    fun pause() {
+        running = false
+        Log.e("viewState", "pause ::: $running")
+        try {
+            gameThread.join()
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+        }
+    }
+    
+    // 재생
+    fun play() {
+        if (running) return
+
         // 중앙 위치 계산
         centerX = width / 2f
         centerY = height / 2f
@@ -149,21 +170,6 @@ class GameView(
         running = true
         gameThread = Thread(this)
         gameThread.start()
-    }
-
-    // surfaceView 변경
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        // 필요 없으면 비워둬도 OK
-    }
-
-    // surfaceView 제거
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
-        running = false
-        try {
-            gameThread.join()
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-        }
     }
 
     // 실행
@@ -351,7 +357,7 @@ class GameView(
         when (gameConfig.viewState) {
             ViewState.MENU -> drawMenu(canvas)
             ViewState.PLAY -> drawGame(canvas)
-            ViewState.SHOP -> drawShop(canvas)
+            ViewState.SHOP -> {}
         }
     }
 
@@ -419,22 +425,6 @@ class GameView(
         settingIconBtnRect.set(ButtonUtil.getButtonSize(width - 100f, 150f, SizeConstants.SETTING_ICON_WIDTH, SizeConstants.SETTING_ICON_HEIGHT))
         canvas.drawBitmap(settingIconBtn, null, settingIconBtnRect, null)
     }
-
-    // 상점 화면 그리기
-    private fun drawShop(canvas: Canvas) {
-        // 세팅 글자
-        settingsTxtRect.set(ButtonUtil.getButtonSize(centerX, 200f, SizeConstants.SETTING_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
-        canvas.drawBitmap(settingTxt, null, settingsTxtRect, null)
-        // 모드 버튼
-        modeButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, gameConfig.clickMode, modeButtonRect)
-        // 배경음 조절 버튼
-        bgmButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 150f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, gameConfig.bgmState, bgmButtonRect)
-        // 뒤로가기 버튼
-        backButtonRect.set(ButtonUtil.getButtonSize(centerX, centerY + 400f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
-        CanvasUtil.drawButton(canvas, ClickMode.BACK, backButtonRect)
-    }
     
     // 배경 화면 그리기
     private fun drawBackground (canvas: Canvas) {
@@ -448,7 +438,7 @@ class GameView(
         when (gameConfig.viewState) {
             ViewState.MENU -> handleMenuTouch(event)
             ViewState.PLAY -> handleGameplayTouch(event)
-            ViewState.SHOP -> handleSettingsTouch(event)
+            ViewState.SHOP -> {}
         }
 
         return true
@@ -465,17 +455,6 @@ class GameView(
                 settingPopupView.showPopup() // 팝업 호출
             } else if (shopBtnRect.contains(event.x, event.y)) {
                 eventListener.onViewStateToggle(ViewState.SHOP)
-            }
-        }
-    }
-
-    // 세팅 터치 이벤트
-    private fun handleSettingsTouch(event: MotionEvent) {
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            when {
-                modeButtonRect.contains(event.x, event.y) -> eventListener.onClickModeToggle()
-                bgmButtonRect.contains(event.x, event.y) -> eventListener.onBgmToggle()
-                backButtonRect.contains(event.x, event.y) -> eventListener.onViewStateToggle(ViewState.MENU)
             }
         }
     }
@@ -527,8 +506,7 @@ class GameView(
                 }
             }
             // 기타
-            GameState.PAUSE,
-            GameState.SHARE-> {
+            GameState.PAUSE-> {
                 // 아무 입력도 안 받음
                 holding = false
             }
@@ -697,9 +675,5 @@ class GameView(
             }
             Toast.makeText(context, "이미지가 저장되었습니다", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    fun signIn(activity: Activity) {
-        PlayGames.getGamesSignInClient(activity).signIn()
     }
 }
