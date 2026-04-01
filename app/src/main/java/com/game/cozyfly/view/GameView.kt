@@ -351,10 +351,8 @@ class GameView(
 
     // 화면 상태별로 캔버스에 요소 그리기
     private fun drawCanvas(canvas: Canvas) {
-        if(gameConfig.viewState != ViewState.SHOP) {
-            // 배경 화면 그리기
-            drawBackground(canvas)
-        }
+        // 배경 화면 그리기
+        drawBackground(canvas)
         // 화면 상태별로 실행
         if(gameConfig.viewState == ViewState.MENU) {
             drawMenu(canvas)

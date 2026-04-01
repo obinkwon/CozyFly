@@ -24,10 +24,29 @@ class ShopView(
 
     // 화면 관련 변수
     private var showing = false
-    private val background: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.shop_background)
-
+    private var centerX = 0f // 중앙 X좌표 값
+    private var centerY = 0f // 중앙 Y좌표 값
+    private var startX = 0f
+    private val swipeThreshold = 100 // 스와이프 판정 거리(px)
     private val backBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.back)
+    private val characterImgs: Array<Array<Bitmap>> = arrayOf(
+        arrayOf(
+            BitmapFactory.decodeResource(resources, R.drawable.fly1),
+            BitmapFactory.decodeResource(resources, R.drawable.fly2)
+        ),
+        arrayOf(
+            BitmapFactory.decodeResource(resources, R.drawable.sprite1),
+            BitmapFactory.decodeResource(resources, R.drawable.sprite2)
+        )
+    )
+    // 현재 선택된 스킨
+    private var currentSkin = characterImgs[0][0]
+    private var isCycling = false
+    private var currentCharacterIndex = 0 // 어떤 캐릭터
+    private var currentImageIndex = 0     // 그 캐릭터의 몇 번째 이미지
+
     private val backBtnRect = RectF()
+    private val characterRect = RectF()
 
     // 화면 표시
     fun showView() {
@@ -47,8 +66,9 @@ class ShopView(
     override fun onDraw(canvas: Canvas) {
         if (!showing || gameConfig.viewState != ViewState.SHOP) return
 
+        centerX = width / 2f
+        centerY = height / 2f
         // 배경 화면 그리기
-        drawBackground(canvas)
         drawShop(canvas)
     }
 
@@ -57,21 +77,31 @@ class ShopView(
         // back 버튼
         backBtnRect.set(ButtonUtil.getButtonSize(width - 100f, 150f, SizeConstants.SETTING_ICON_WIDTH, SizeConstants.SETTING_ICON_HEIGHT))
         canvas.drawBitmap(backBtn, null, backBtnRect, null)
-    }
 
-    // 배경 화면 그리기
-    private fun drawBackground(canvas: Canvas) {
-        val backgroundRect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-        canvas.drawBitmap(background, null, backgroundRect, null)
+        // 캐릭터 버튼
+        characterRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.PLAYER_BIG_WIDTH, SizeConstants.PLAYER_BIG_HEIGHT))
+        canvas.drawBitmap(currentSkin, null, characterRect, null)
     }
 
     // 터치 이벤트
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (!showing || gameConfig.viewState != ViewState.SHOP || event.action != MotionEvent.ACTION_DOWN) return false
+        if (!showing || gameConfig.viewState != ViewState.SHOP) return false
 
-        if(gameConfig.viewState == ViewState.SHOP){
-            handleShopTouch(event)
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                startX = event.x
+            }
+
+            MotionEvent.ACTION_UP -> {
+                val diffX = event.x - startX
+
+                if (kotlin.math.abs(diffX) > swipeThreshold) {
+                    handleSwipe(diffX)
+                } else {
+                    handleShopTouch(event)
+                }
+            }
         }
 
         return true
@@ -79,10 +109,67 @@ class ShopView(
 
     // shop 터치 이벤트
     private fun handleShopTouch(event: MotionEvent) {
-        if (event.action == MotionEvent.ACTION_DOWN) {
-            when {
-                backBtnRect.contains(event.x, event.y) -> hideView()
-            }
+        when {
+            backBtnRect.contains(event.x, event.y) -> hideView()
+            characterRect.contains(event.x, event.y) -> handleCharacterTouch()
+        }
+    }
+
+    // 캐릭터 변경
+    private fun handleSwipe(diffX: Float) {
+        if (characterImgs.size <= 1) return
+
+        // 자동 애니메이션 중이면 정지
+        if (isCycling) {
+            isCycling = false
+            removeCallbacks(runnable)
+        }
+
+        if (diffX > 0) {
+            // 👉 오른쪽 스와이프 → 이전 캐릭터
+            currentCharacterIndex =
+                (currentCharacterIndex - 1 + characterImgs.size) % characterImgs.size
+        } else {
+            // 👉 왼쪽 스와이프 → 다음 캐릭터
+            currentCharacterIndex =
+                (currentCharacterIndex + 1) % characterImgs.size
+        }
+
+        // 👉 캐릭터 바뀌면 이미지 초기화
+        currentImageIndex = 0
+
+        currentSkin = characterImgs[currentCharacterIndex][currentImageIndex]
+        invalidate()
+    }
+
+    // 애니메이션 실행
+    private val runnable = object : Runnable {
+        override fun run() {
+            if (!isCycling) return
+
+            val currentImgs = characterImgs[currentCharacterIndex]
+
+            if (currentImgs.isEmpty()) return
+
+            currentImageIndex = (currentImageIndex + 1) % currentImgs.size
+            currentSkin = currentImgs[currentImageIndex]
+
+            invalidate()
+
+            postDelayed(this, 1000)
+        }
+    }
+
+    // 캐릭터 터치 이벤트
+    private fun handleCharacterTouch() {
+        if (isCycling) {
+            // 멈춤
+            isCycling = false
+            removeCallbacks(runnable)
+        } else {
+            // 시작
+            isCycling = true
+            post(runnable)
         }
     }
 }
