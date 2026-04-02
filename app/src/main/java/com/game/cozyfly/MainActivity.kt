@@ -130,14 +130,20 @@ class MainActivity : ComponentActivity(), GameEventListener {
     }
     // 자동 로그인 시도하는 함수
     private fun autoGameSignIn(onSuccess: () -> Unit) {
-        gamesSignInClient.signIn().addOnCompleteListener { task ->
-            if (task.isSuccessful && task.result.isAuthenticated) {
-                onSuccess()
-            } else {
-                Log.e("Login", "fail", task.exception)
+        gamesSignInClient.isAuthenticated.addOnCompleteListener { task ->
+            val isAuthenticated = task.isSuccessful && task.result.isAuthenticated
+            // 구글 로그인 된사람만 자동로그인
+            if (isAuthenticated) {
+                gamesSignInClient.signIn().addOnCompleteListener { task ->
+                    if (task.isSuccessful && task.result.isAuthenticated) {
+                        onSuccess()
+                    } else {
+                        Log.e("Login", "fail", task.exception)
+                    }
+                }.addOnFailureListener {
+                    Log.e("PlayGames", "autoGameSignIn 실패", it)
+                }
             }
-        }.addOnFailureListener {
-            Log.e("PlayGames", "autoGameSignIn 실패", it)
         }
     }
     // 리더보드 점수 저장

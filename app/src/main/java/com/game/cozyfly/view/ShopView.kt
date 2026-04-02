@@ -97,7 +97,7 @@ class ShopView(
         canvas.drawBitmap(rightBtn, null, rightBtnRect, null)
 
         // 현재 캐릭터 이름
-        characterNameRect.set(ButtonUtil.getButtonSize(centerX, characterRect.bottom + 300f, SizeConstants.START_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
+        characterNameRect.set(ButtonUtil.getButtonSize(centerX, characterRect.bottom + 200f, SizeConstants.START_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
         canvas.drawBitmap(currentName, null, characterNameRect, null)
     }
 
