@@ -2,6 +2,7 @@ package com.game.cozyfly.data
 
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
+import com.game.cozyfly.enums.SkinType
 import com.game.cozyfly.enums.ViewState
 
 data class GameConfig(
@@ -11,4 +12,6 @@ data class GameConfig(
     var viewState: ViewState,
     var bestScore: Int,
     var coinScore: Int,
+    var selectSkin: SkinType,
+    var purchasedSkins: List<SkinType>,
 )

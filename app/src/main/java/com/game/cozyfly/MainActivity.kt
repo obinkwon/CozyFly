@@ -14,6 +14,7 @@ import com.game.cozyfly.constants.LeaderBoardConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.ClickMode
 import com.game.cozyfly.enums.GameState
+import com.game.cozyfly.enums.SkinType
 import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.view.GameView
@@ -46,7 +47,13 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val viewState = ViewState.MENU
         val bestScore = prefs.getInt("BEST_SCORE", 0)
         val coinScore = prefs.getInt("COIN_SCORE", 0)
-        gameConfig = GameConfig(bgmState, clickMode, gameState, viewState, bestScore, coinScore)
+        val selectSkin = SkinType.getSkin(prefs.getString("SELECT_SKIN", SkinType.FLY.name)) ?: SkinType.FLY
+        val purchasedSkins = prefs.getStringSet("PURCHASE_SKIN", emptySet())!!.mapNotNull { SkinType.getSkin(it) }.ifEmpty { listOf(SkinType.FLY) }
+        gameConfig = GameConfig(bgmState,
+                            clickMode,
+                            gameState, viewState,
+                            bestScore, coinScore,
+                            selectSkin ,purchasedSkins)
 
         // 게임 뷰 추가
         val gameView = GameView(this, this, gameConfig)

@@ -11,9 +11,12 @@ import android.view.View
 import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
+import com.game.cozyfly.enums.ClickMode
+import com.game.cozyfly.enums.SkinType
 import com.game.cozyfly.enums.ViewState
 import com.game.cozyfly.listener.GameEventListener
 import com.game.cozyfly.util.ButtonUtil
+import com.game.cozyfly.util.CanvasUtil
 
 @SuppressLint("ViewConstructor")
 class ShopView(
@@ -24,6 +27,7 @@ class ShopView(
 
     // 화면 관련 변수
     private var showing = false
+    val prefs = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val backBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.back)
@@ -31,19 +35,21 @@ class ShopView(
         arrayOf(
             BitmapFactory.decodeResource(resources, R.drawable.fly1),
             BitmapFactory.decodeResource(resources, R.drawable.fly2),
-                    BitmapFactory.decodeResource(resources, R.drawable.fly_name)
+            BitmapFactory.decodeResource(resources, R.drawable.fly_name),
         ),
         arrayOf(
             BitmapFactory.decodeResource(resources, R.drawable.sprite1),
             BitmapFactory.decodeResource(resources, R.drawable.sprite2),
-            BitmapFactory.decodeResource(resources, R.drawable.sprite_name)
+            BitmapFactory.decodeResource(resources, R.drawable.sprite_name),
         )
     )
+    private val characterSkins: Array<SkinType> = SkinType.entries.toTypedArray()
     private val leftBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.left)
     private val rightBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.right)
     // 현재 선택된 스킨
     private var currentSkin = characterImgs[0][0]
     private var currentName = characterImgs[0][2]
+    private var currentSkinType = gameConfig.selectSkin
     private var isCycling = false
     private var currentCharacterIndex = 0 // 어떤 캐릭터
     private var currentImageIndex = 0     // 그 캐릭터의 몇 번째 이미지
@@ -53,6 +59,7 @@ class ShopView(
     private val characterNameRect = RectF()
     private val leftBtnRect = RectF()
     private val rightBtnRect = RectF()
+    private val purchaseButtonRect = RectF()
 
     // 화면 표시
     fun showView() {
@@ -85,7 +92,7 @@ class ShopView(
         canvas.drawBitmap(backBtn, null, backBtnRect, null)
 
         // 캐릭터 버튼
-        characterRect.set(ButtonUtil.getButtonSize(centerX, centerY, SizeConstants.PLAYER_BIG_WIDTH, SizeConstants.PLAYER_BIG_HEIGHT))
+        characterRect.set(ButtonUtil.getButtonSize(centerX, centerY - 200f, SizeConstants.PLAYER_BIG_WIDTH, SizeConstants.PLAYER_BIG_HEIGHT))
         canvas.drawBitmap(currentSkin, null, characterRect, null)
 
         // 왼쪽 방향표 버튼
@@ -99,6 +106,10 @@ class ShopView(
         // 현재 캐릭터 이름
         characterNameRect.set(ButtonUtil.getButtonSize(centerX, characterRect.bottom + 200f, SizeConstants.START_BTN_WIDTH, SizeConstants.SETTING_BTN_HEIGHT))
         canvas.drawBitmap(currentName, null, characterNameRect, null)
+
+        // 모드 버튼
+        purchaseButtonRect.set(ButtonUtil.getButtonSize(centerX, characterNameRect.bottom + 200f, SizeConstants.DEFAULT_BTN_WIDTH, SizeConstants.DEFAULT_BTN_HEIGHT))
+        CanvasUtil.drawButton(canvas, getSkinClickMode(currentSkinType), purchaseButtonRect, getSkinClickState(currentSkinType))
     }
 
     // 터치 이벤트
@@ -139,6 +150,7 @@ class ShopView(
 
         currentSkin = characterImgs[currentCharacterIndex][0]
         currentName = characterImgs[currentCharacterIndex][2]
+        currentSkinType = characterSkins[currentCharacterIndex]
         invalidate()
     }
 
@@ -171,5 +183,35 @@ class ShopView(
             isCycling = true
             post(runnable)
         }
+    }
+    
+    // 해당 스킨 버튼 텍스트 조회
+    private fun getSkinClickMode(skinType: SkinType): ClickMode {
+        // 구매한 스킨일 경우
+        if(gameConfig.purchasedSkins.contains(skinType)) {
+            // 사용중인 스킨일 경우
+            if(gameConfig.selectSkin == skinType){
+                return ClickMode.SELECT_Y
+            } else {
+                return ClickMode.SELECT_N
+            }
+        }
+
+        return ClickMode.PURCHASE_N;
+    }
+
+    // 해당 스킨 버튼 상태 조회
+    private fun getSkinClickState(skinType: SkinType): Boolean {
+        // 구매한 스킨일 경우
+        if(gameConfig.purchasedSkins.contains(skinType)) {
+            // 사용중인 스킨일 경우
+            if(gameConfig.selectSkin == skinType){
+                return true
+            } else {
+                return false
+            }
+        }
+
+        return false;
     }
 }
