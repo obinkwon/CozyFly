@@ -77,8 +77,21 @@ object CanvasUtil {
     fun drawButton(
         canvas: Canvas,
         desc: String,
-        rect: RectF
+        rect: RectF,
+        isSelected: Boolean = false
     ) {
+        if (isSelected) {
+            // 선택된 상태 (비활성 느낌)
+            buttonPaint.alpha = 120
+            buttonBorderPaint.alpha = 120
+            textPaint.alpha = 120
+        } else {
+            // 기본 상태 (클릭 가능)
+            buttonPaint.alpha = 255
+            buttonBorderPaint.alpha = 255
+            textPaint.alpha = 255
+        }
+
         // 버튼 배경
         canvas.drawRoundRect(rect, 25f, 25f, buttonPaint)
         // 테두리

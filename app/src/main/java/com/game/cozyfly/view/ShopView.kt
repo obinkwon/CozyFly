@@ -8,6 +8,8 @@ import android.graphics.Canvas
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Toast
+import androidx.core.content.edit
 import com.game.cozyfly.R
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
@@ -44,15 +46,17 @@ class ShopView(
         )
     )
     private val characterSkins: Array<SkinType> = SkinType.entries.toTypedArray()
+    private val characterPrices: Array<Int> = arrayOf(0, 100)
     private val leftBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.left)
     private val rightBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.right)
     // 현재 선택된 스킨
-    private var currentSkin = characterImgs[0][0]
-    private var currentName = characterImgs[0][2]
+    private var currentCharacterIndex = gameConfig.selectSkin.ordinal // 어떤 캐릭터
+    private var currentSkin = characterImgs[gameConfig.selectSkin.ordinal][0]
+    private var currentName = characterImgs[gameConfig.selectSkin.ordinal][2]
     private var currentSkinType = gameConfig.selectSkin
+    private var currentSkinPrice = characterPrices[gameConfig.selectSkin.ordinal]
     private var isCycling = false
-    private var currentCharacterIndex = 0 // 어떤 캐릭터
-    private var currentImageIndex = 0     // 그 캐릭터의 몇 번째 이미지
+    private var currentImageIndex = 0 // 그 캐릭터의 몇 번째 이미지
 
     private val backBtnRect = RectF()
     private val characterRect = RectF()
@@ -131,6 +135,7 @@ class ShopView(
             characterRect.contains(event.x, event.y) -> handleCharacterTouch()
             leftBtnRect.contains(event.x, event.y) -> handleCharacterChange("L")
             rightBtnRect.contains(event.x, event.y) -> handleCharacterChange("R")
+            purchaseButtonRect.contains(event.x, event.y) -> handlePurchaseClick()
         }
     }
 
@@ -151,6 +156,7 @@ class ShopView(
         currentSkin = characterImgs[currentCharacterIndex][0]
         currentName = characterImgs[currentCharacterIndex][2]
         currentSkinType = characterSkins[currentCharacterIndex]
+        currentSkinPrice = characterPrices[currentCharacterIndex]
         invalidate()
     }
 
@@ -186,18 +192,18 @@ class ShopView(
     }
     
     // 해당 스킨 버튼 텍스트 조회
-    private fun getSkinClickMode(skinType: SkinType): ClickMode {
+    private fun getSkinClickMode(skinType: SkinType): String {
         // 구매한 스킨일 경우
         if(gameConfig.purchasedSkins.contains(skinType)) {
             // 사용중인 스킨일 경우
             if(gameConfig.selectSkin == skinType){
-                return ClickMode.SELECT_Y
+                return ClickMode.SELECT_Y.desc
             } else {
-                return ClickMode.SELECT_N
+                return ClickMode.SELECT_N.desc
             }
         }
 
-        return ClickMode.PURCHASE_N;
+        return "$currentSkinPrice Coin"
     }
 
     // 해당 스킨 버튼 상태 조회
@@ -212,6 +218,39 @@ class ShopView(
             }
         }
 
-        return false;
+        return false
+    }
+
+    // 스킨 구매
+    private fun handlePurchaseClick() {
+        // 구매한 스킨일 경우
+        if(gameConfig.purchasedSkins.contains(currentSkinType)) {
+            // 사용중인 스킨이 아닐 경우
+            if(gameConfig.selectSkin != currentSkinType){
+                // 스킨 교체
+                gameConfig.selectSkin = currentSkinType
+            }
+        }
+        // 구매 안했을때
+        else {
+            // 코인 충분한지 확인
+            if (gameConfig.coinScore >= currentSkinPrice) {
+                // 코인 차감
+                gameConfig.coinScore -= currentSkinPrice
+                prefs.edit { putInt("COIN_SCORE", gameConfig.coinScore) }
+
+                // 구매 목록에 추가
+                gameConfig.purchasedSkins.add(currentSkinType)
+                prefs.edit { putStringSet("PURCHASE_SKIN", gameConfig.purchasedSkins.map { it.name }.toSet()) }
+
+                // 스킨 사용
+                gameConfig.selectSkin = currentSkinType
+            } else {
+                // 코인 부족 처리 (토스트 등)
+                Toast.makeText(context, "코인이 부족합니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        invalidate()
     }
 }

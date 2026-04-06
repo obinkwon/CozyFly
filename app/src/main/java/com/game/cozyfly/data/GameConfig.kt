@@ -13,5 +13,5 @@ data class GameConfig(
     var bestScore: Int,
     var coinScore: Int,
     var selectSkin: SkinType,
-    var purchasedSkins: List<SkinType>,
+    var purchasedSkins: MutableSet<SkinType>,
 )

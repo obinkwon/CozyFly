@@ -48,7 +48,12 @@ class MainActivity : ComponentActivity(), GameEventListener {
         val bestScore = prefs.getInt("BEST_SCORE", 0)
         val coinScore = prefs.getInt("COIN_SCORE", 0)
         val selectSkin = SkinType.getSkin(prefs.getString("SELECT_SKIN", SkinType.FLY.name)) ?: SkinType.FLY
-        val purchasedSkins = prefs.getStringSet("PURCHASE_SKIN", emptySet())!!.mapNotNull { SkinType.getSkin(it) }.ifEmpty { listOf(SkinType.FLY) }
+        val purchasedSkins = prefs.getStringSet("PURCHASE_SKIN", emptySet())!!.mapNotNull { SkinType.getSkin(it) }.toMutableSet()
+        // prefs에 없다면 추가
+        if (!purchasedSkins.contains(SkinType.FLY)) {
+            purchasedSkins.add(SkinType.FLY)
+            prefs.edit { putStringSet("PURCHASE_SKIN", purchasedSkins.map { it.name }.toSet()) }
+        }
         gameConfig = GameConfig(bgmState,
                             clickMode,
                             gameState, viewState,
