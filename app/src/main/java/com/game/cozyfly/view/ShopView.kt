@@ -229,6 +229,7 @@ class ShopView(
             if(gameConfig.selectSkin != currentSkinType){
                 // 스킨 교체
                 gameConfig.selectSkin = currentSkinType
+                prefs.edit { putString("SELECT_SKIN", currentSkinType.name) }
             }
         }
         // 구매 안했을때

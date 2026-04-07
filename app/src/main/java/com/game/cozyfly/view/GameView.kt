@@ -85,8 +85,20 @@ class GameView(
     var holding = false
 
     // 파리 관련 변수
-    private val playerImg1 = BitmapFactory.decodeResource(resources, R.drawable.fly1)
-    private val playerImg2 = BitmapFactory.decodeResource(resources, R.drawable.fly2)
+    private val characterImgs: Array<Array<Bitmap>> = arrayOf(
+        arrayOf(
+            BitmapFactory.decodeResource(resources, R.drawable.fly1),
+            BitmapFactory.decodeResource(resources, R.drawable.fly2),
+            BitmapFactory.decodeResource(resources, R.drawable.fly_name),
+        ),
+        arrayOf(
+            BitmapFactory.decodeResource(resources, R.drawable.sprite1),
+            BitmapFactory.decodeResource(resources, R.drawable.sprite2),
+            BitmapFactory.decodeResource(resources, R.drawable.sprite_name),
+        )
+    )
+    private var playerImg1 = characterImgs[gameConfig.selectSkin.ordinal][0]
+    private var playerImg2 = characterImgs[gameConfig.selectSkin.ordinal][1]
     // 현재 사용할 이미지
     private var currentPlayer = playerImg1
     private var playerX = 0f // 파리 X좌표
@@ -615,6 +627,10 @@ class GameView(
         bgX2 = background.width.toFloat()
         eventListener.onGameStateToggle(GameState.PLAY)
         clearEffect()
+
+        playerImg1 = characterImgs[gameConfig.selectSkin.ordinal][0]
+        playerImg2 = characterImgs[gameConfig.selectSkin.ordinal][1]
+        currentPlayer = playerImg1
     }
 
     // 난이도 조절
