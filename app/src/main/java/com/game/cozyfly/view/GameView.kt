@@ -50,7 +50,7 @@ class GameView(
     private var flapTimer = 0
     private val flapDuration = 10   // 프레임 수 (약 0.15초)
     private var difficultyLevel = 1 // 난이도
-    private val baseScrollSpeed = 8f
+    private val baseScrollSpeed = 3.5f
     private val baseSpawnInterval = 100
     private var scrollSpeed = baseScrollSpeed
     private var spawnTimer = 0
@@ -637,8 +637,8 @@ class GameView(
     private fun updateDifficulty() {
         difficultyLevel = score / 10 + 1
 
-        scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 2f
-        spawnInterval = ((baseSpawnInterval - (difficultyLevel - 1) * 10).coerceAtLeast(40) / speedMultiplier).toInt()
+        scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 0.7f
+        spawnInterval = ((baseSpawnInterval - (difficultyLevel - 1) * 6).coerceAtLeast(60) / speedMultiplier).toInt()
     }
 
     // 장애물이랑 겹치는지 확인
