@@ -16,6 +16,7 @@ import android.view.SurfaceView
 import android.widget.Toast
 import androidx.core.content.edit
 import com.game.cozyfly.R
+import com.game.cozyfly.constants.CharacterImgConstants.characterResIds
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.data.TextStyle
@@ -51,10 +52,9 @@ class GameView(
     private val flapDuration = 10   // 프레임 수 (약 0.15초)
     private var difficultyLevel = 1 // 난이도
     private val baseScrollSpeed = 3.5f
-    private val baseSpawnInterval = 100
     private var scrollSpeed = baseScrollSpeed
-    private var spawnTimer = 0
-    private var spawnInterval = baseSpawnInterval
+    private var distanceSinceLastSpawn = 0f
+    private var spawnDistance = 600f  // 장애물 간 거리 (튜닝 가능)
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val startBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.start)
@@ -85,18 +85,11 @@ class GameView(
     var holding = false
 
     // 파리 관련 변수
-    private val characterImgs: Array<Array<Bitmap>> = arrayOf(
-        arrayOf(
-            BitmapFactory.decodeResource(resources, R.drawable.fly1),
-            BitmapFactory.decodeResource(resources, R.drawable.fly2),
-            BitmapFactory.decodeResource(resources, R.drawable.fly_name),
-        ),
-        arrayOf(
-            BitmapFactory.decodeResource(resources, R.drawable.sprite1),
-            BitmapFactory.decodeResource(resources, R.drawable.sprite2),
-            BitmapFactory.decodeResource(resources, R.drawable.sprite_name),
-        )
-    )
+    private val characterImgs = characterResIds.map { row ->
+        row.map { resId ->
+            BitmapFactory.decodeResource(resources, resId)
+        }.toTypedArray()
+    }.toTypedArray()
     private var playerImg1 = characterImgs[gameConfig.selectSkin.ordinal][0]
     private var playerImg2 = characterImgs[gameConfig.selectSkin.ordinal][1]
     // 현재 사용할 이미지
@@ -104,7 +97,7 @@ class GameView(
     private var playerX = 0f // 파리 X좌표
     private var playerY = 0f // 파리 Y좌표
     private var velocityY = 0f
-    private val gravity = 1.2f
+    private val gravity = 1f
     private val playerRadius = SizeConstants.PLAYER_WIDTH / 2
 
     // 배경 관련 변수
@@ -222,7 +215,7 @@ class GameView(
 
         // 홀드 모드일때
         if (gameConfig.clickMode == ClickMode.CLICK_HOLD && holding) {
-            velocityY = -20f * gravityMultiplier  // 원하는 상승 속도
+            velocityY = -15f * gravityMultiplier  // 원하는 상승 속도
             currentPlayer = playerImg2
             flapTimer = flapDuration
         } else {
@@ -251,9 +244,10 @@ class GameView(
         }
 
         // 장애물 생성 타이밍
-        spawnTimer++
-        if (spawnTimer > spawnInterval) {
-            spawnTimer = 0
+        distanceSinceLastSpawn += scrollSpeed * speedMultiplier
+
+        if (distanceSinceLastSpawn >= spawnDistance) {
+            distanceSinceLastSpawn -= spawnDistance
             spawnObstacle()
             spawnCoin()
         }
@@ -614,14 +608,13 @@ class GameView(
         obstacles.clear()
         coins.clear()
         effectItems.clear()
-        spawnTimer = 0
+        distanceSinceLastSpawn = 0f
 
         score = 0
         timeCounter = 0
 
         difficultyLevel = 1
         scrollSpeed = baseScrollSpeed
-        spawnInterval = baseSpawnInterval
 
         bgX1 = 0f
         bgX2 = background.width.toFloat()
@@ -638,7 +631,6 @@ class GameView(
         difficultyLevel = score / 10 + 1
 
         scrollSpeed = baseScrollSpeed + (difficultyLevel - 1) * 0.7f
-        spawnInterval = ((baseSpawnInterval - (difficultyLevel - 1) * 6).coerceAtLeast(60) / speedMultiplier).toInt()
     }
 
     // 장애물이랑 겹치는지 확인

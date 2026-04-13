@@ -17,7 +17,7 @@ class Coin(
 
     private var frameIndex = 0
     private var frameCounter = 0
-    private val frameChangeInterval = 3 // 60fps 기준 20fps
+    private val frameChangeInterval = 6 // 60fps 기준 10fps
 
     private val rect = RectF()
 

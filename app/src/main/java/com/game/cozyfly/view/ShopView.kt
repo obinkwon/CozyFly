@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.content.edit
 import com.game.cozyfly.R
+import com.game.cozyfly.constants.CharacterImgConstants.characterResIds
 import com.game.cozyfly.constants.SizeConstants
 import com.game.cozyfly.data.GameConfig
 import com.game.cozyfly.enums.ClickMode
@@ -33,20 +34,12 @@ class ShopView(
     private var centerX = 0f // 중앙 X좌표 값
     private var centerY = 0f // 중앙 Y좌표 값
     private val backBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.back)
-    private val characterImgs: Array<Array<Bitmap>> = arrayOf(
-        arrayOf(
-            BitmapFactory.decodeResource(resources, R.drawable.fly1),
-            BitmapFactory.decodeResource(resources, R.drawable.fly2),
-            BitmapFactory.decodeResource(resources, R.drawable.fly_name),
-        ),
-        arrayOf(
-            BitmapFactory.decodeResource(resources, R.drawable.sprite1),
-            BitmapFactory.decodeResource(resources, R.drawable.sprite2),
-            BitmapFactory.decodeResource(resources, R.drawable.sprite_name),
-        )
-    )
+    private val characterImgs = characterResIds.map { row ->
+        row.map { resId ->
+            BitmapFactory.decodeResource(resources, resId)
+        }.toTypedArray()
+    }.toTypedArray()
     private val characterSkins: Array<SkinType> = SkinType.entries.toTypedArray()
-    private val characterPrices: Array<Int> = arrayOf(0, 100)
     private val leftBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.left)
     private val rightBtn: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.right)
     // 현재 선택된 스킨
@@ -54,7 +47,7 @@ class ShopView(
     private var currentSkin = characterImgs[gameConfig.selectSkin.ordinal][0]
     private var currentName = characterImgs[gameConfig.selectSkin.ordinal][2]
     private var currentSkinType = gameConfig.selectSkin
-    private var currentSkinPrice = characterPrices[gameConfig.selectSkin.ordinal]
+    private var currentSkinPrice = characterSkins[gameConfig.selectSkin.ordinal].price
     private var isCycling = false
     private var currentImageIndex = 0 // 그 캐릭터의 몇 번째 이미지
 
@@ -156,7 +149,7 @@ class ShopView(
         currentSkin = characterImgs[currentCharacterIndex][0]
         currentName = characterImgs[currentCharacterIndex][2]
         currentSkinType = characterSkins[currentCharacterIndex]
-        currentSkinPrice = characterPrices[currentCharacterIndex]
+        currentSkinPrice = characterSkins[currentCharacterIndex].price
         invalidate()
     }
 
