@@ -1,0 +1,2 @@
+json_key_file("cozyfly-service-account.json") # 서비스 어카운트 키 json
+package_name("com.game.cozyfly") # 패키지명

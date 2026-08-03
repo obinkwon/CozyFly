@@ -1,0 +1,57 @@
+default_platform(:android)
+
+platform :android do
+
+  desc "beta 배포"
+  lane :beta do
+
+    # 1. VersionCode 증가
+    increment_version_code
+
+    # 2. Release Bundle 생성(AAB)
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+
+    # 3. Google Play Internal Track 업로드
+    upload_to_play_store(
+      track: "beta",
+      aab: "../app/build/outputs/bundle/debug/app-debug.aab",
+      release_status: "draft",
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+
+    puts "Beta 배포 완료"
+
+  end
+
+  desc "Production 배포"
+  lane :production do
+
+    # 1. VersionCode 증가
+    increment_version_code
+
+    # 2. Release Build
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+
+    # 3. Play Store Production 업로드
+    upload_to_play_store(
+      track: "production",
+      aab: "../app/release/app-release.aab",
+      release_status: "draft",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: false
+    )
+
+    puts "Production 배포 완료"
+
+  end
+
+end
