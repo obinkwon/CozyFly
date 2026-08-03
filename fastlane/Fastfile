@@ -5,16 +5,13 @@ platform :android do
   desc "beta 배포"
   lane :beta do
 
-    # 1. VersionCode 증가
-    increment_version_code
-
-    # 2. Release Bundle 생성(AAB)
+    # Release Bundle 생성(AAB)
     gradle(
       task: "bundle",
       build_type: "Release"
     )
 
-    # 3. Google Play Internal Track 업로드
+    # Google Play Internal Track 업로드
     upload_to_play_store(
       track: "beta",
       aab: "../app/build/outputs/bundle/debug/app-debug.aab",
@@ -31,16 +28,13 @@ platform :android do
   desc "Production 배포"
   lane :production do
 
-    # 1. VersionCode 증가
-    increment_version_code
-
-    # 2. Release Build
+    # Release Build
     gradle(
       task: "bundle",
       build_type: "Release"
     )
 
-    # 3. Play Store Production 업로드
+    # Play Store Production 업로드
     upload_to_play_store(
       track: "production",
       aab: "../app/release/app-release.aab",
