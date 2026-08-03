@@ -5,6 +5,9 @@ platform :android do
   desc "beta 배포"
   lane :beta do
 
+    ENV["JAVA_HOME"] = "E:/java/jdk-17.0.19"
+    ENV["PATH"] = "#{ENV['JAVA_HOME']}/bin;#{ENV['PATH']}"
+
     # Release Bundle 생성(AAB)
     gradle(
       task: "bundle",
@@ -14,11 +17,12 @@ platform :android do
     # Google Play Internal Track 업로드
     upload_to_play_store(
       track: "beta",
-      aab: "../app/build/outputs/bundle/debug/app-debug.aab",
       release_status: "draft",
-      skip_upload_metadata: false,
-      skip_upload_images: false,
-      skip_upload_screenshots: false
+      metadata_path: "./fastlane/metadata",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
     )
 
     puts "Beta 배포 완료"
@@ -28,7 +32,10 @@ platform :android do
   desc "Production 배포"
   lane :production do
 
-    # Release Build
+    ENV["JAVA_HOME"] = "E:/java/jdk-17.0.19"
+    ENV["PATH"] = "#{ENV['JAVA_HOME']}/bin;#{ENV['PATH']}"
+
+    # Release Bundle 생성(AAB)
     gradle(
       task: "bundle",
       build_type: "Release"
@@ -37,15 +44,16 @@ platform :android do
     # Play Store Production 업로드
     upload_to_play_store(
       track: "production",
-      aab: "../app/release/app-release.aab",
-      release_status: "draft",
+      # release_status: "draft", // 임시 제출
+      release_status: "completed", #// 바로 심사 제출
+      metadata_path: "./fastlane/metadata",
       skip_upload_metadata: true,
       skip_upload_images: true,
-      skip_upload_screenshots: false
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
+      # changes_not_sent_for_review: true // 변경사항 검토 하고 심사제출 할건지 여부
     )
-
     puts "Production 배포 완료"
-
   end
 
 end
