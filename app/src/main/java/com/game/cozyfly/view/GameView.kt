@@ -133,6 +133,9 @@ class GameView(
     private var speedMultiplier = 1f
     private var gravityMultiplier = 1f
     private val effectSpawnChance = 0.005f // 0.5% 확률 (프레임당)
+    // 보호막 아이템 효과
+    private val shieldEffectBitmap: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.shield)
+    private var hasShield = false // 보호막 여부
 
     // 초기 설정
     init {
@@ -305,8 +308,19 @@ class GameView(
         }
 
         // 충돌 판정
-        for (obs in obstacles) {
+        val obstacleIterator2 = obstacles.iterator()
+        while (obstacleIterator2.hasNext()) {
+            val obs = obstacleIterator2.next()
+
             if (obs.collidesWith(playerX, playerY, playerRadius)) {
+
+                if (hasShield) {
+                    hasShield = false          // 보호막 소모
+                    obstacleIterator2.remove() // 충돌한 장애물 제거
+                    activeEffect = null        // SHIELD 아이콘도 제거
+                    break
+                }
+
                 eventListener.onGameStateToggle(GameState.GAMEOVER)
                 prefs.edit { putInt("BEST_SCORE", gameConfig.bestScore) }
                 prefs.edit { putInt("COIN_SCORE", gameConfig.coinScore) }
@@ -371,6 +385,17 @@ class GameView(
         // 파리 그리기
         val playerRect = ButtonUtil.getButtonSize(playerX, playerY, SizeConstants.PLAYER_WIDTH, SizeConstants.PLAYER_HEIGHT)
         canvas.drawBitmap(currentPlayer, null, playerRect, null)
+
+        // 보호막 이펙트
+        if (hasShield) {
+            val shieldRect = ButtonUtil.getButtonSize(
+                playerX,
+                playerY,
+                SizeConstants.PLAYER_WIDTH + 40f,
+                SizeConstants.PLAYER_HEIGHT + 40f
+            )
+            canvas.drawBitmap(shieldEffectBitmap, null, shieldRect, null)
+        }
 
         // 장애물 그리기
         for (obs in obstacles) {
@@ -620,6 +645,8 @@ class GameView(
         bgX2 = background.width.toFloat()
         eventListener.onGameStateToggle(GameState.PLAY)
         clearEffect()
+        // 보호막 제거
+        hasShield = false
 
         playerImg1 = characterImgs[gameConfig.selectSkin.ordinal][0]
         playerImg2 = characterImgs[gameConfig.selectSkin.ordinal][1]
@@ -652,6 +679,7 @@ class GameView(
             EffectType.SPEED_UP -> speedMultiplier = 1.8f
             EffectType.SPEED_DOWN -> speedMultiplier = 0.5f
             EffectType.REVERSE_JUMP -> gravityMultiplier = -1f
+            EffectType.SHIELD -> hasShield = true
         }
     }
 
