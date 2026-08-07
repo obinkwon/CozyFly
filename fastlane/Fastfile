@@ -22,7 +22,7 @@ platform :android do
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
-      skip_upload_changelogs: true
+      skip_upload_changelogs: false
     )
 
     puts "Beta 배포 완료"
@@ -46,11 +46,11 @@ platform :android do
       track: "production",
       # release_status: "draft", // 임시 제출
       release_status: "completed", #// 바로 심사 제출
-      metadata_path: "./fastlane/metadata",
+      metadata_path: "./fastlane/metadata/android",
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
-      skip_upload_changelogs: true
+      skip_upload_changelogs: false
       # changes_not_sent_for_review: true // 변경사항 검토 하고 심사제출 할건지 여부
     )
     puts "Production 배포 완료"
